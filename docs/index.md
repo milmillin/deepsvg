@@ -8,6 +8,7 @@ Reshot AI: [link](https://www.reshot.ai) <br />
 BricksAR: [link](https://www.bricksar.com) <br />
 LingoSub: [link](https://www.lingosub.com) <br />
 ClipLaunch: [link](https://www.cliplaunch.com) <br />
+ThumbnailsPro: [link](https://www.thumbnailspro.com) <br />
 
 <p align="center">
     <a href="https://www.aiunfolded.co">
