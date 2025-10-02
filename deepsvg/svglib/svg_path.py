@@ -18,7 +18,7 @@ COMMAND_RE = re.compile(r"([MmZzLlHhVvCcSsQqTtAa])")
 FLOAT_RE = re.compile(r"[-+]?[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?")
 
 
-empty_command = SVGCommandMove(Point(0.))
+empty_command = SVGCommandMove(Point(0.0))
 
 
 class Orientation:
@@ -33,8 +33,10 @@ class Filling:
 
 
 class SVGPath:
-    def __init__(self, path_commands: List[SVGCommand] = None, origin: Point = None, closed=False, filling=Filling.OUTLINE):
-        self.origin = origin or Point(0.)
+    def __init__(
+        self, path_commands: List[SVGCommand] = None, origin: Point = None, closed=False, filling=Filling.OUTLINE
+    ):
+        self.origin = origin or Point(0.0)
         self.path_commands = path_commands
         self.closed = closed
 
@@ -54,6 +56,7 @@ class SVGPath:
 
     def to_group(self, *args, **kwargs):
         from .svg_primitive import SVGPathGroup
+
         return SVGPathGroup([self], *args, **kwargs)
 
     def set_filling(self, filling=True):
@@ -66,15 +69,23 @@ class SVGPath:
     def __getitem__(self, idx):
         if idx == 0:
             return self.start_command
-        return self.path_commands[idx-1]
+        return self.path_commands[idx - 1]
 
     def all_commands(self, with_close=True):
-        close_cmd = [SVGCommandClose(self.path_commands[-1].end_pos.copy(), self.start_pos.copy())] if self.closed and self.path_commands and with_close \
-                    else ()
+        close_cmd = (
+            [SVGCommandClose(self.path_commands[-1].end_pos.copy(), self.start_pos.copy())]
+            if self.closed and self.path_commands and with_close
+            else ()
+        )
         return [self.start_command, *self.path_commands, *close_cmd]
 
     def copy(self):
-        return SVGPath([path_command.copy() for path_command in self.path_commands], self.origin.copy(), self.closed, filling=self.filling)
+        return SVGPath(
+            [path_command.copy() for path_command in self.path_commands],
+            self.origin.copy(),
+            self.closed,
+            filling=self.filling,
+        )
 
     @staticmethod
     def _tokenize_path(path_str):
@@ -87,21 +98,21 @@ class SVGPath:
 
     @staticmethod
     def from_xml(x: minidom.Element):
-        stroke = x.getAttribute('stroke')
-        dasharray = x.getAttribute('dasharray')
-        stroke_width = x.getAttribute('stroke-width')
+        stroke = x.getAttribute("stroke")
+        dasharray = x.getAttribute("dasharray")
+        stroke_width = x.getAttribute("stroke-width")
 
         fill = not x.hasAttribute("fill") or not x.getAttribute("fill") == "none"
 
         filling = Filling.OUTLINE if not x.hasAttribute("filling") else int(x.getAttribute("filling"))
 
-        s = x.getAttribute('d')
+        s = x.getAttribute("d")
         return SVGPath.from_str(s, fill=fill, filling=filling)
 
     @staticmethod
     def from_str(s: str, fill=False, filling=Filling.OUTLINE, add_closing=False):
         path_commands = []
-        pos = initial_pos = Point(0.)
+        pos = initial_pos = Point(0.0)
         prev_command = None
         for cmd, args in SVGPath._tokenize_path(s):
             cmd_parsed, pos, initial_pos = SVGCommand.from_str(cmd, args, pos, initial_pos, prev_command)
@@ -115,7 +126,9 @@ class SVGPath:
         return SVGPath.from_commands([SVGCommand.from_tensor(row) for row in tensor], allow_empty=allow_empty)
 
     @staticmethod
-    def from_commands(path_commands: List[SVGCommand], fill=False, filling=Filling.OUTLINE, add_closing=False, allow_empty=False):
+    def from_commands(
+        path_commands: List[SVGCommand], fill=False, filling=Filling.OUTLINE, add_closing=False, allow_empty=False
+    ):
         from .svg_primitive import SVGPathGroup
 
         if not path_commands:
@@ -126,7 +139,9 @@ class SVGPath:
 
         for command in path_commands:
             if isinstance(command, SVGCommandMove):
-                if svg_path is not None and (allow_empty or svg_path.path_commands):  # SVGPath contains at least one command
+                if svg_path is not None and (
+                    allow_empty or svg_path.path_commands
+                ):  # SVGPath contains at least one command
                     if add_closing:
                         svg_path.closed = True
                     if not svg_path.path_commands:
@@ -165,13 +180,16 @@ class SVGPath:
     def to_tensor(self, PAD_VAL=-1):
         return torch.stack([command.to_tensor(PAD_VAL=PAD_VAL) for command in self.all_commands()])
 
-    def _get_viz_elements(self, with_points=False, with_handles=False, with_bboxes=False, color_firstlast=False, with_moves=True):
+    def _get_viz_elements(
+        self, with_points=False, with_handles=False, with_bboxes=False, color_firstlast=False, with_moves=True
+    ):
         points = self._get_points_viz(color_firstlast, with_moves) if with_points else ()
         handles = self._get_handles_viz() if with_handles else ()
         return [*points, *handles]
 
     def draw(self, viewbox=Bbox(24), *args, **kwargs):
         from .svg import SVG
+
         return SVG([self.to_group()], viewbox=viewbox).draw(*args, **kwargs)
 
     def _get_points_viz(self, color_firstlast=True, with_moves=True):
@@ -180,7 +198,9 @@ class SVGPath:
         n = len(commands)
         for i, command in enumerate(commands):
             if not isinstance(command, SVGCommandMove) or with_moves:
-                points_viz = command.get_points_viz(first=(color_firstlast and i <= 1), last=(color_firstlast and i >= n-2))
+                points_viz = command.get_points_viz(
+                    first=(color_firstlast and i <= 1), last=(color_firstlast and i >= n - 2)
+                )
                 points.extend(points_viz)
         return points
 
@@ -236,9 +256,11 @@ class SVGPath:
         return self
 
     def duplicate_extremities(self):
-        self.path_commands = [SVGCommandLine(self.start_pos, self.start_pos),
-                              *self.path_commands,
-                              SVGCommandLine(self.end_pos, self.end_pos)]
+        self.path_commands = [
+            SVGCommandLine(self.start_pos, self.start_pos),
+            *self.path_commands,
+            SVGCommandLine(self.end_pos, self.end_pos),
+        ]
         return self
 
     def is_clockwise(self):
@@ -246,10 +268,10 @@ class SVGPath:
             cmd = self.path_commands[0]
             return cmd.start_pos.tolist() <= cmd.end_pos.tolist()
 
-        det_total = 0.
+        det_total = 0.0
         for cmd in self.path_commands:
             det_total += geom.det(cmd.start_pos, cmd.end_pos)
-        return det_total >= 0.
+        return det_total >= 0.0
 
     def set_orientation(self, orientation):
         """
@@ -307,10 +329,7 @@ class SVGPath:
         if self.closed:
             topleftmost_cmd, topleftmost_idx = self._get_topleftmost_command()
 
-            self.path_commands = [
-                *self.path_commands[topleftmost_idx:],
-                *self.path_commands[:topleftmost_idx]
-            ]
+            self.path_commands = [*self.path_commands[topleftmost_idx:], *self.path_commands[:topleftmost_idx]]
 
         return self
 
@@ -337,7 +356,7 @@ class SVGPath:
             svg_path = SVGPath(svg_commands).to_group(color=color)
             svg_new_path = SVGPath([SVGCommandMove(start_pos), command]).to_group(color="red")
 
-            svg_paths = [svg_path, svg_new_path]  if svg_commands else [svg_new_path]
+            svg_paths = [svg_path, svg_new_path] if svg_commands else [svg_new_path]
             im = SVG([*svg_paths, *svg_moves, *svg_dots]).draw(do_display=False, return_png=True, with_points=False)
             clips.append(wrapper(np.array(im)))
 
@@ -357,7 +376,7 @@ class SVGPath:
         knots = [self.start_pos, *(path_commmand.end_pos for path_commmand in self.path_commands)]
         r = [knots[0] + 2 * knots[1]]
         f = [2]
-        p = [Point(0.)] * (n + 1)
+        p = [Point(0.0)] * (n + 1)
 
         # Solve with the Thomas algorithm
         for i in range(1, n):
@@ -366,29 +385,32 @@ class SVGPath:
             b = 4 if internal else 2
             u = 4 if internal else 3
             v = 2 if internal else 0
-            m = a / f[i-1]
+            m = a / f[i - 1]
 
-            f.append(b-m)
-            r.append(u * knots[i] + v * knots[i + 1] - m * r[i-1])
+            f.append(b - m)
+            r.append(u * knots[i] + v * knots[i + 1] - m * r[i - 1])
 
-        p[n-1] = r[n-1] / f[n-1]
-        for i in range(n-2, -1, -1):
-            p[i] = (r[i] - p[i+1]) / f[i]
-        p[n] = (3 * knots[n] - p[n-1]) / 2
+        p[n - 1] = r[n - 1] / f[n - 1]
+        for i in range(n - 2, -1, -1):
+            p[i] = (r[i] - p[i + 1]) / f[i]
+        p[n] = (3 * knots[n] - p[n - 1]) / 2
 
         for i in range(n):
-            p1, p2 = knots[i], knots[i+1]
-            c1, c2 = p[i], 2 * p2 - p[i+1]
+            p1, p2 = knots[i], knots[i + 1]
+            c1, c2 = p[i], 2 * p2 - p[i + 1]
             self.path_commands[i] = SVGCommandBezier(p1, c1, c2, p2)
 
         return self
 
     def simplify_heuristic(self):
-        return self.copy().split(max_dist=2, include_lines=False) \
-            .simplify(tolerance=0.1, epsilon=0.2, angle_threshold=150) \
+        return (
+            self.copy()
+            .split(max_dist=2, include_lines=False)
+            .simplify(tolerance=0.1, epsilon=0.2, angle_threshold=150)
             .split(max_dist=7.5)
+        )
 
-    def simplify(self, tolerance=0.1, epsilon=0.1, angle_threshold=179., force_smooth=False):
+    def simplify(self, tolerance=0.1, epsilon=0.1, angle_threshold=179.0, force_smooth=False):
         # https://github.com/paperjs/paper.js/blob/c044b698c6b224c10a7747664b2a4cd00a416a25/src/path/PathFitter.js#L44
         points = [self.start_pos, *(path_command.end_pos for path_command in self.path_commands)]
 
@@ -422,7 +444,7 @@ class SVGPath:
         path_commands = []
 
         def computeMaxError(first, last, curve: SVGCommandBezier, u):
-            maxDist = 0.
+            maxDist = 0.0
             index = (last - first + 1) // 2
             for i in range(1, last - first):
                 dist = curve.eval(u[i]).dist(points[first + i]) ** 2
@@ -432,9 +454,9 @@ class SVGPath:
             return maxDist, index
 
         def chordLengthParametrize(first, last):
-            u = [0.]
+            u = [0.0]
             for i in range(1, last - first + 1):
-                u.append(u[i-1] + points[first + i].dist(points[first + i-1]))
+                u.append(u[i - 1] + points[first + i].dist(points[first + i - 1]))
 
             for i, _ in enumerate(u[1:], 1):
                 u[i] /= u[-1]
@@ -447,17 +469,17 @@ class SVGPath:
 
         def findRoot(curve: SVGCommandBezier, point, u):
             """
-               Newton's root finding algorithm calculates f(x)=0 by reiterating
-               x_n+1 = x_n - f(x_n)/f'(x_n)
-               We are trying to find curve parameter u for some point p that minimizes
-               the distance from that point to the curve. Distance point to curve is d=q(u)-p.
-               At minimum distance the point is perpendicular to the curve.
-               We are solving
-               f = q(u)-p * q'(u) = 0
-               with
-               f' = q'(u) * q'(u) + q(u)-p * q''(u)
-               gives
-               u_n+1 = u_n - |q(u_n)-p * q'(u_n)| / |q'(u_n)**2 + q(u_n)-p * q''(u_n)|
+            Newton's root finding algorithm calculates f(x)=0 by reiterating
+            x_n+1 = x_n - f(x_n)/f'(x_n)
+            We are trying to find curve parameter u for some point p that minimizes
+            the distance from that point to the curve. Distance point to curve is d=q(u)-p.
+            At minimum distance the point is perpendicular to the curve.
+            We are solving
+            f = q(u)-p * q'(u) = 0
+            with
+            f' = q'(u) * q'(u) + q(u)-p * q''(u)
+            gives
+            u_n+1 = u_n - |q(u_n)-p * q'(u_n)| / |q'(u_n)**2 + q(u_n)-p * q''(u_n)|
             """
             diff = curve.eval(u) - point
             d1, d2 = curve.derivative(u, n=1), curve.derivative(u, n=2)
@@ -471,7 +493,7 @@ class SVGPath:
                 u[i] = findRoot(curve, points[first + i], u[i])
 
             for i in range(1, len(u)):
-                if u[i] <= u[i-1]:
+                if u[i] <= u[i - 1]:
                     return False
 
             return True
@@ -534,7 +556,7 @@ class SVGPath:
             return SVGCommandBezier(p1, p1 + handle1, p2 + handle2, p2)
 
         def computeLinearMaxError(first, last):
-            maxDist = 0.
+            maxDist = 0.0
             index = (last - first + 1) // 2
 
             p1, p2 = points[first], points[last]
@@ -586,7 +608,7 @@ class SVGPath:
                 parametersInOrder = reparametrize(first, last, uPrime, curve)
                 maxError = max_error
 
-            tanCenter = (points[split_index-1] - points[split_index+1]).normalize()
+            tanCenter = (points[split_index - 1] - points[split_index + 1]).normalize()
             fitCubic(error, first, split_index, tan1, tanCenter)
             fitCubic(error, split_index, last, -tanCenter, tan2)
 

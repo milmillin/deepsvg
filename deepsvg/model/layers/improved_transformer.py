@@ -35,8 +35,8 @@ class TransformerEncoderLayerImproved(Module):
         self.activation = _get_activation_fn(activation)
 
     def __setstate__(self, state):
-        if 'activation' not in state:
-            state['activation'] = F.relu
+        if "activation" not in state:
+            state["activation"] = F.relu
         super(TransformerEncoderLayerImproved, self).__setstate__(state)
 
     def forward(self, src, memory2=None, src_mask=None, src_key_padding_mask=None):
@@ -74,18 +74,21 @@ class TransformerDecoderLayerImproved(Module):
         self.activation = _get_activation_fn(activation)
 
     def __setstate__(self, state):
-        if 'activation' not in state:
-            state['activation'] = F.relu
+        if "activation" not in state:
+            state["activation"] = F.relu
         super(TransformerDecoderLayerImproved, self).__setstate__(state)
 
-    def forward(self, tgt, memory, tgt_mask=None, memory_mask=None,
-                tgt_key_padding_mask=None, memory_key_padding_mask=None):
+    def forward(
+        self, tgt, memory, tgt_mask=None, memory_mask=None, tgt_key_padding_mask=None, memory_key_padding_mask=None
+    ):
         tgt1 = self.norm1(tgt)
         tgt2 = self.self_attn(tgt1, tgt1, tgt1, attn_mask=tgt_mask, key_padding_mask=tgt_key_padding_mask)[0]
         tgt = tgt + self.dropout1(tgt2)
 
         tgt1 = self.norm2(tgt)
-        tgt2 = self.multihead_attn(tgt1, memory, memory, attn_mask=memory_mask, key_padding_mask=memory_key_padding_mask)[0]
+        tgt2 = self.multihead_attn(
+            tgt1, memory, memory, attn_mask=memory_mask, key_padding_mask=memory_key_padding_mask
+        )[0]
         tgt = tgt + self.dropout2(tgt2)
 
         tgt1 = self.norm3(tgt)
@@ -119,8 +122,8 @@ class TransformerDecoderLayerGlobalImproved(Module):
         self.activation = _get_activation_fn(activation)
 
     def __setstate__(self, state):
-        if 'activation' not in state:
-            state['activation'] = F.relu
+        if "activation" not in state:
+            state["activation"] = F.relu
         super(TransformerDecoderLayerGlobalImproved, self).__setstate__(state)
 
     def forward(self, tgt, memory, memory2=None, tgt_mask=None, tgt_key_padding_mask=None, *args, **kwargs):

@@ -23,10 +23,7 @@ class Frame:
         self.kivy_bezierpaths = None
 
     def to_dict(self):
-        return {
-            "index": self.index,
-            "keyframe": self.keyframe
-        }
+        return {"index": self.index, "keyframe": self.keyframe}
 
     @staticmethod
     def load_dict(frame):
@@ -82,12 +79,7 @@ class DeepSVGProject:
 
     def save_project(self):
         with open(self.filename, "w") as f:
-            data = {
-                "name": self.name,
-                "uid": self.uid,
-
-                "frames": [frame.to_dict() for frame in self.frames]
-            }
+            data = {"name": self.name, "uid": self.uid, "frames": [frame.to_dict() for frame in self.frames]}
 
             json.dump(data, f)
 

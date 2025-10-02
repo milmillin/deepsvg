@@ -13,7 +13,7 @@
     <a href="https://alexandre01.github.io/deepsvg/">
         <img alt="Website" src="https://img.shields.io/website/http/alexandre01.github.io/deepsvg/index.html.svg?down_color=red&down_message=offline&up_message=online">
     </a>
-    
+
 </p>
 
 ## Introduction
@@ -52,7 +52,7 @@ This repository includes:
 - The **training code** to reproduce our Hierarchical Generative Network: DeepSVG.
 - A **library for deep learning with SVG data**, including export functionality to differentiable PyTorch tensors.
 - The **SVG-Icons8 dataset**.
-- A **Graphical user interface** showing a demo of DeepSVG for vector graphics animation. 
+- A **Graphical user interface** showing a demo of DeepSVG for vector graphics animation.
 
 
 ## Updates
@@ -60,7 +60,7 @@ This repository includes:
 
 - September 2020: Accepted to NeurIPS2020 🎉
 
-- July 2020: Added pretrained models and notebook for Font generation. 
+- July 2020: Added pretrained models and notebook for Font generation.
 
 
 ## Installation
@@ -188,7 +188,7 @@ See `notebooks/svgtensor.ipynb`.
 While developing DeepSVG, we have also built a Graphical User Interface (GUI) for easier visualization of our model and as a tool to easily create 2D animations.
 The code, available under `deepsvg/gui`, is written with Kivy and the UI style is inspired from the design tool Figma.
 
-> **DISCLAIMER**: this GUI has been developed for demo purposes mainly and features one would expect from 
+> **DISCLAIMER**: this GUI has been developed for demo purposes mainly and features one would expect from
 a vector graphics editor (like rescaling) will be added in the near future. For more flexibility, we recommend creating
 animations programmatically using the template code provided in `notebooks/animation.ipynb`.
 

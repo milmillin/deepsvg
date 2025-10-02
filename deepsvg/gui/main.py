@@ -13,8 +13,9 @@ from kivy.clock import Clock
 from kivy.uix.popup import Popup
 
 from kivy.config import Config
-Config.set('graphics', 'width', '1400')
-Config.set('graphics', 'height', '800')
+
+Config.set("graphics", "width", "1400")
+Config.set("graphics", "height", "800")
 from kivy.core.window import Window
 
 import os
@@ -260,14 +261,14 @@ class BezierSegment(Widget):
 
     def on_touch_down(self, touch):
         max_dist = dp(self.select_dist)
-        
+
         if not self.parent.selected:
             return super().on_touch_down(touch)
 
         keys_to_test = ["p1", "q1", "q2", "p2"] if self.is_curved else ["p1", "p2"]
         for key in keys_to_test:
             if dist(touch.pos, getattr(self, key)) < max_dist:
-                touch.ud['selected'] = key
+                touch.ud["selected"] = key
                 touch.grab(self)
 
                 state.modified = True
@@ -278,7 +279,7 @@ class BezierSegment(Widget):
         if touch.grab_current is not self:
             return super().on_touch_move(touch)
 
-        key = touch.ud['selected']
+        key = touch.ud["selected"]
         setattr(self, key, touch.pos)
 
         if state.header.selected_tool == ToolMode.PEN:
@@ -332,7 +333,7 @@ class BezierPath(Widget):
         idx = self.children.index(segment)
 
         if not (idx == 0 and key == "p1") and not (idx == len(self.children) - 1 and key == "p2"):
-            idx2, key2 = (idx-1, "p2") if key == "p1" else (idx+1, "p1")
+            idx2, key2 = (idx - 1, "p2") if key == "p1" else (idx + 1, "p1")
             setattr(self.children[idx2], key2, pos)
 
     def add_widget(self, widget, index=0, canvas=None):
@@ -346,12 +347,17 @@ class BezierPath(Widget):
         segments = []
         for command in svg_path.path_commands:
             if isinstance(command, SVGCommandBezier):
-                segment = BezierSegment.bezier(flip_vertical(command.p1.tolist()), flip_vertical(command.q1.tolist()),
-                                               flip_vertical(command.q2.tolist()), flip_vertical(command.p2.tolist()))
+                segment = BezierSegment.bezier(
+                    flip_vertical(command.p1.tolist()),
+                    flip_vertical(command.q1.tolist()),
+                    flip_vertical(command.q2.tolist()),
+                    flip_vertical(command.p2.tolist()),
+                )
                 segments.append(segment)
             elif isinstance(command, SVGCommandLine):
-                segment = BezierSegment.line(flip_vertical(command.start_pos.tolist()),
-                                             flip_vertical(command.end_pos.tolist()))
+                segment = BezierSegment.line(
+                    flip_vertical(command.start_pos.tolist()), flip_vertical(command.end_pos.tolist())
+                )
                 segments.append(segment)
 
         path = BezierPath(segments, *args, **kwargs)
@@ -361,8 +367,12 @@ class BezierPath(Widget):
         path_commands = []
         for segment in self.children:
             if segment.is_curved:
-                command = SVGCommandBezier(Point(*flip_vertical(segment.p1)), Point(*flip_vertical(segment.q1)),
-                                           Point(*flip_vertical(segment.q2)), Point(*flip_vertical(segment.p2)))
+                command = SVGCommandBezier(
+                    Point(*flip_vertical(segment.p1)),
+                    Point(*flip_vertical(segment.q1)),
+                    Point(*flip_vertical(segment.q2)),
+                    Point(*flip_vertical(segment.p2)),
+                )
             else:
                 command = SVGCommandLine(Point(*flip_vertical(segment.p1)), Point(*flip_vertical(segment.p2)))
             path_commands.append(command)
@@ -406,10 +416,10 @@ class Sketch(Widget):
 class EditorView(Scatter):
     def on_touch_down(self, touch):
         if self.collide_point(*touch.pos) and touch.is_mouse_scrolling:
-            if touch.button == 'scrolldown':
+            if touch.button == "scrolldown":
                 if self.scale < 10:
                     self.scale = self.scale * 1.1
-            elif touch.button == 'scrollup':
+            elif touch.button == "scrollup":
                 if self.scale > 1:
                     self.scale = self.scale * 0.8
             return True
@@ -489,9 +499,11 @@ class DrawViewbox(Widget):
         miniature_path = os.path.join(state.project.cache_dir, f"{state.timeline.selected_frame}_{path_idx}.png")
         if not os.path.exists(miniature_path) or force_rerender_miniature:
             svg_path = normalized_path(svg_path)
-            svg_path.draw(viewbox=svg_path.bbox().make_square(min_size=12),
-                          file_path=os.path.join(state.project.cache_dir, f"{state.timeline.selected_frame}_{path_idx}.png"),
-                          do_display=False)
+            svg_path.draw(
+                viewbox=svg_path.bbox().make_square(min_size=12),
+                file_path=os.path.join(state.project.cache_dir, f"{state.timeline.selected_frame}_{path_idx}.png"),
+                do_display=False,
+            )
 
         if not state.header.is_playing:
             state.sidebar._add_path()
@@ -577,7 +589,9 @@ class DrawViewbox(Widget):
     def save_frame(self):
         svg = self.to_svg()
         state.project.frames[state.current_frame].svg = svg
-        state.project.frames[state.current_frame].kivy_bezierpaths = [child for child in reversed(self.children) if isinstance(child, BezierPath)]
+        state.project.frames[state.current_frame].kivy_bezierpaths = [
+            child for child in reversed(self.children) if isinstance(child, BezierPath)
+        ]
 
 
 class HeaderButton(Button):
@@ -690,7 +704,7 @@ class DeepSVGWidget(BoxLayout):
 
 class DeepSVGApp(App):
     def build(self):
-        self.title = 'DeepSVG Editor'
+        self.title = "DeepSVG Editor"
 
         Window.bind(on_request_close=self.on_request_close)
         Window.bind(on_keyboard=self.on_keyboard)
@@ -709,7 +723,7 @@ class DeepSVGApp(App):
         self.stop()
 
     def on_keyboard(self, window, key, scancode, codepoint, modifier):
-        CTRL_PRESSED = (modifier == ['ctrl'] or modifier == ['meta'])
+        CTRL_PRESSED = modifier == ["ctrl"] or modifier == ["meta"]
 
         if codepoint == "h" and not CTRL_PRESSED:
             # Hand tool
@@ -727,11 +741,11 @@ class DeepSVGApp(App):
             # Make keypoint
             state.timeline.make_keyframe()
 
-        elif CTRL_PRESSED and codepoint == 'q':
+        elif CTRL_PRESSED and codepoint == "q":
             # Quit
             self.on_request_close()
 
-        elif CTRL_PRESSED and codepoint == 'i':
+        elif CTRL_PRESSED and codepoint == "i":
             # Import
             self.file_chooser = FileChoosePopup(load=self.on_file_chosen)
             self.file_chooser.open()
@@ -740,17 +754,17 @@ class DeepSVGApp(App):
             # Export
             state.project.export_to_gif(loop_mode=state.loop_mode)
 
-        elif CTRL_PRESSED and codepoint == 'c':
+        elif CTRL_PRESSED and codepoint == "c":
             # Copy
             if state.sidebar.selected_path_idx >= 0:
                 state.clipboard = state.draw_viewbox.get_path(state.sidebar.selected_path_idx).clone()
 
-        elif CTRL_PRESSED and codepoint == 'v':
+        elif CTRL_PRESSED and codepoint == "v":
             # Paste
             if isinstance(state.clipboard, BezierPath):
                 state.draw_viewbox.paste(state.clipboard)
 
-        elif CTRL_PRESSED and codepoint == 's':
+        elif CTRL_PRESSED and codepoint == "s":
             # Save
             self.save()
 

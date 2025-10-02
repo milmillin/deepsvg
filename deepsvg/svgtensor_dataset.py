@@ -11,12 +11,26 @@ from typing import List, Union
 import pandas as pd
 import os
 import pickle
+
 Num = Union[int, float]
 
 
 class SVGTensorDataset(torch.utils.data.Dataset):
-    def __init__(self, data_dir, meta_filepath, model_args, max_num_groups, max_seq_len, max_total_len=None,
-                 filter_uni=None, filter_platform=None, filter_category=None, train_ratio=1.0, df=None, PAD_VAL=-1):
+    def __init__(
+        self,
+        data_dir,
+        meta_filepath,
+        model_args,
+        max_num_groups,
+        max_seq_len,
+        max_total_len=None,
+        filter_uni=None,
+        filter_platform=None,
+        filter_category=None,
+        train_ratio=1.0,
+        df=None,
+        PAD_VAL=-1,
+    ):
         self.data_dir = data_dir
 
         self.MAX_NUM_GROUPS = max_num_groups
@@ -75,13 +89,67 @@ class SVGTensorDataset(torch.utils.data.Dataset):
 
     @staticmethod
     def _category_to_label(category):
-        categories = ['characters', 'free-icons', 'logos', 'alphabet', 'animals', 'arrows', 'astrology', 'baby', 'beauty',
-                      'business', 'cinema', 'city', 'clothing', 'computer-hardware', 'crime', 'cultures', 'data', 'diy',
-                      'drinks', 'ecommerce', 'editing', 'files', 'finance', 'folders', 'food', 'gaming', 'hands', 'healthcare',
-                      'holidays', 'household', 'industry', 'maps', 'media-controls', 'messaging', 'military', 'mobile',
-                      'music', 'nature', 'network', 'photo-video', 'plants', 'printing',  'profile', 'programming', 'science',
-                      'security', 'shopping', 'social-networks', 'sports', 'time-and-date', 'transport', 'travel', 'user-interface',
-                      'users', 'weather', 'flags', 'emoji', 'men', 'women']
+        categories = [
+            "characters",
+            "free-icons",
+            "logos",
+            "alphabet",
+            "animals",
+            "arrows",
+            "astrology",
+            "baby",
+            "beauty",
+            "business",
+            "cinema",
+            "city",
+            "clothing",
+            "computer-hardware",
+            "crime",
+            "cultures",
+            "data",
+            "diy",
+            "drinks",
+            "ecommerce",
+            "editing",
+            "files",
+            "finance",
+            "folders",
+            "food",
+            "gaming",
+            "hands",
+            "healthcare",
+            "holidays",
+            "household",
+            "industry",
+            "maps",
+            "media-controls",
+            "messaging",
+            "military",
+            "mobile",
+            "music",
+            "nature",
+            "network",
+            "photo-video",
+            "plants",
+            "printing",
+            "profile",
+            "programming",
+            "science",
+            "security",
+            "shopping",
+            "social-networks",
+            "sports",
+            "time-and-date",
+            "transport",
+            "travel",
+            "user-interface",
+            "users",
+            "weather",
+            "flags",
+            "emoji",
+            "men",
+            "women",
+        ]
         return categories.index(category)
 
     def get_label(self, idx=0, entry=None):
@@ -146,7 +214,7 @@ class SVGTensorDataset(torch.utils.data.Dataset):
             return svg.numericalize(256)
         return svg
 
-    def get(self, idx=0, model_args=None, random_aug=True, id=None, svg: SVG=None):
+    def get(self, idx=0, model_args=None, random_aug=True, id=None, svg: SVG = None):
         if id is None:
             idx = idx % len(self.df)
             id = self.idx_to_id(idx)
@@ -172,10 +240,19 @@ class SVGTensorDataset(torch.utils.data.Dataset):
         t_sep.extend([torch.empty(0, 14)] * pad_len)
         fillings.extend([0] * pad_len)
 
-        t_grouped = [SVGTensor.from_data(torch.cat(t_sep, dim=0), PAD_VAL=self.PAD_VAL).add_eos().add_sos().pad(
-            seq_len=self.MAX_TOTAL_LEN + 2)]
-        t_sep = [SVGTensor.from_data(t, PAD_VAL=self.PAD_VAL, filling=f).add_eos().add_sos().pad(seq_len=self.MAX_SEQ_LEN + 2) for
-                 t, f in zip(t_sep, fillings)]
+        t_grouped = [
+            SVGTensor.from_data(torch.cat(t_sep, dim=0), PAD_VAL=self.PAD_VAL)
+            .add_eos()
+            .add_sos()
+            .pad(seq_len=self.MAX_TOTAL_LEN + 2)
+        ]
+        t_sep = [
+            SVGTensor.from_data(t, PAD_VAL=self.PAD_VAL, filling=f)
+            .add_eos()
+            .add_sos()
+            .pad(seq_len=self.MAX_SEQ_LEN + 2)
+            for t, f in zip(t_sep, fillings)
+        ]
 
         for arg in set(model_args):
             if "_grouped" in arg:
@@ -210,6 +287,7 @@ class SVGFinetuneDataset(torch.utils.data.Dataset):
     Wrapper around SVGTensorDataset intended to finetune a model on a list of additional SVGs.
     Randomly samples fraction `frac` of SVGs to be finetuned and `1-frac` of data from the original SVGTensorDataset.
     """
+
     def __init__(self, original_dataset: SVGTensorDataset, svg_list: List[SVG], frac=0.5, nb_augmentations=20):
         self.original_dataset = original_dataset
         self.svg_list = svg_list
@@ -228,6 +306,16 @@ class SVGFinetuneDataset(torch.utils.data.Dataset):
 
 
 def load_dataset(cfg: _Config):
-    dataset = SVGTensorDataset(cfg.data_dir, cfg.meta_filepath, cfg.model_args, cfg.max_num_groups, cfg.max_seq_len, cfg.max_total_len,
-                               cfg.filter_uni, cfg.filter_platform, cfg.filter_category, cfg.train_ratio)
+    dataset = SVGTensorDataset(
+        cfg.data_dir,
+        cfg.meta_filepath,
+        cfg.model_args,
+        cfg.max_num_groups,
+        cfg.max_seq_len,
+        cfg.max_total_len,
+        cfg.filter_uni,
+        cfg.filter_platform,
+        cfg.filter_category,
+        cfg.train_ratio,
+    )
     return dataset

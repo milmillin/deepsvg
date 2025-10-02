@@ -17,6 +17,7 @@ class ModelConfig(Hierarchical):
     """
     Overriding default model config.
     """
+
     def __init__(self):
         super().__init__()
 
@@ -25,6 +26,7 @@ class Config(_Config):
     """
     Overriding default training config.
     """
+
     def __init__(self, num_gpus=1):
         super().__init__(num_gpus=num_gpus)
 
@@ -53,7 +55,7 @@ class Config(_Config):
         self.grad_clip = 1.0
 
     def make_schedulers(self, optimizers, epoch_size):
-        optimizer, = optimizers
+        (optimizer,) = optimizers
         return [lr_scheduler.StepLR(optimizer, step_size=2.5 * epoch_size, gamma=0.9)]
 
     def make_model(self):
@@ -69,16 +71,18 @@ class Config(_Config):
             "loss_hierarch_weight": 1.0,
             "loss_cmd_weight": 1.0,
             "loss_args_weight": 2.0,
-            "loss_visibility_weight": 1.0
+            "loss_visibility_weight": 1.0,
         }
 
     def set_train_vars(self, train_vars, dataloader):
-        train_vars.x_inputs_train = [dataloader.dataset.get(idx, [*self.model_args, "tensor_grouped"])
-                                     for idx in random.sample(range(len(dataloader.dataset)), k=10)]
+        train_vars.x_inputs_train = [
+            dataloader.dataset.get(idx, [*self.model_args, "tensor_grouped"])
+            for idx in random.sample(range(len(dataloader.dataset)), k=10)
+        ]
 
     def visualize(self, model, output, train_vars, step, epoch, summary_writer, visualization_dir):
         device = next(model.parameters()).device
-        
+
         # Reconstruction
         for i, data in enumerate(train_vars.x_inputs_train):
             model_args = batchify((data[key] for key in self.model_args), device)
@@ -86,12 +90,21 @@ class Config(_Config):
             tensor_pred = SVGTensor.from_cmd_args(commands_y[0].cpu(), args_y[0].cpu())
 
             try:
-                svg_path_sample = SVG.from_tensor(tensor_pred.data, viewbox=Bbox(256), allow_empty=True).normalize().split_paths().set_color("random")
+                svg_path_sample = (
+                    SVG.from_tensor(tensor_pred.data, viewbox=Bbox(256), allow_empty=True)
+                    .normalize()
+                    .split_paths()
+                    .set_color("random")
+                )
             except:
                 continue
 
             tensor_target = data["tensor_grouped"][0].copy().drop_sos().unpad()
-            svg_path_gt = SVG.from_tensor(tensor_target.data, viewbox=Bbox(256)).normalize().split_paths().set_color("random")
+            svg_path_gt = (
+                SVG.from_tensor(tensor_target.data, viewbox=Bbox(256)).normalize().split_paths().set_color("random")
+            )
 
-            img = make_grid([svg_path_sample, svg_path_gt]).draw(do_display=False, return_png=True, fill=False, with_points=False)
+            img = make_grid([svg_path_sample, svg_path_gt]).draw(
+                do_display=False, return_png=True, fill=False, with_points=False
+            )
             summary_writer.add_image(f"reconstructions_train/{i}", TF.to_tensor(img), step)

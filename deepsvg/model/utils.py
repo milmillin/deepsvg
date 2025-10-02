@@ -25,7 +25,9 @@ def _get_padding_mask(commands, seq_dim=0, extended=False):
         if extended:
             # padding_mask doesn't include the final EOS, extend by 1 position to include it in the loss
             S = commands.size(seq_dim)
-            torch.narrow(padding_mask, seq_dim, 3, S-3).add_(torch.narrow(padding_mask, seq_dim, 0, S-3)).clamp_(max=1)
+            torch.narrow(padding_mask, seq_dim, 3, S - 3).add_(torch.narrow(padding_mask, seq_dim, 0, S - 3)).clamp_(
+                max=1
+            )
 
         if seq_dim == 0:
             return padding_mask.unsqueeze(-1)
@@ -68,13 +70,13 @@ def _get_key_visibility_mask(commands, seq_dim=0):
 
 def _generate_square_subsequent_mask(sz):
     mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
-    mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
+    mask = mask.float().masked_fill(mask == 0, float("-inf")).masked_fill(mask == 1, float(0.0))
     return mask
 
 
 def _sample_categorical(temperature=0.0001, *args_logits):
     if len(args_logits) == 1:
-        arg_logits, = args_logits
+        (arg_logits,) = args_logits
         return Categorical(logits=arg_logits / temperature).sample()
     return (*(Categorical(logits=arg_logits / temperature).sample() for arg_logits in args_logits),)
 

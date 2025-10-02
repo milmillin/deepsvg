@@ -20,7 +20,7 @@ def batchify(data, device):
 def _make_seq_first(*args):
     # N, G, S, ... -> S, G, N, ...
     if len(args) == 1:
-        arg, = args
+        (arg,) = args
         return arg.permute(2, 1, 0, *range(3, arg.dim())) if arg is not None else None
     return (*(arg.permute(2, 1, 0, *range(3, arg.dim())) if arg is not None else None for arg in args),)
 
@@ -28,7 +28,7 @@ def _make_seq_first(*args):
 def _make_batch_first(*args):
     # S, G, N, ... -> N, G, S, ...
     if len(args) == 1:
-        arg, = args
+        (arg,) = args
         return arg.permute(2, 1, 0, *range(3, arg.dim())) if arg is not None else None
     return (*(arg.permute(2, 1, 0, *range(3, arg.dim())) if arg is not None else None for arg in args),)
 
@@ -36,14 +36,19 @@ def _make_batch_first(*args):
 def _pack_group_batch(*args):
     # S, G, N, ... -> S, G * N, ...
     if len(args) == 1:
-        arg, = args
+        (arg,) = args
         return arg.reshape(arg.size(0), arg.size(1) * arg.size(2), *arg.shape[3:]) if arg is not None else None
-    return (*(arg.reshape(arg.size(0), arg.size(1) * arg.size(2), *arg.shape[3:]) if arg is not None else None for arg in args),)
+    return (
+        *(
+            arg.reshape(arg.size(0), arg.size(1) * arg.size(2), *arg.shape[3:]) if arg is not None else None
+            for arg in args
+        ),
+    )
 
 
 def _unpack_group_batch(N, *args):
     # S, G * N, ... -> S, G, N, ...
     if len(args) == 1:
-        arg, = args
+        (arg,) = args
         return arg.reshape(arg.size(0), -1, N, *arg.shape[2:]) if arg is not None else None
     return (*(arg.reshape(arg.size(0), -1, N, *arg.shape[2:]) if arg is not None else None for arg in args),)

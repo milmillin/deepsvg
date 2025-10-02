@@ -5,8 +5,8 @@ DEFAULT_PADDING = 6
 
 
 class AlignedTextInput(TextInput):
-    halign = StringProperty('left')
-    valign = StringProperty('top')
+    halign = StringProperty("left")
+    valign = StringProperty("top")
 
     def __init__(self, **kwargs):
         self.halign = kwargs.get("halign", "left")
@@ -36,16 +36,16 @@ class AlignedTextInput(TextInput):
         px = [DEFAULT_PADDING, DEFAULT_PADDING]
         py = [DEFAULT_PADDING, DEFAULT_PADDING]
 
-        if self.halign == 'center':
+        if self.halign == "center":
             d = (self.width - max_size[0]) / 2.0 - DEFAULT_PADDING
             px = [d, d]
-        elif self.halign == 'right':
+        elif self.halign == "right":
             px[0] = self.width - max_size[0] - DEFAULT_PADDING
 
-        if self.valign == 'middle':
+        if self.valign == "middle":
             d = (self.height - max_size[1] * num_lines) / 2.0 - DEFAULT_PADDING
             py = [d + 5, d - 5]
-        elif self.valign == 'bottom':
+        elif self.valign == "bottom":
             py[0] = self.height - max_size[1] * num_lines - DEFAULT_PADDING
 
         self.padding_x = px

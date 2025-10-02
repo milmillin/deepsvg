@@ -18,18 +18,17 @@ def svg_length_loss(p_pred, p_target):
     return (target_length - pred_length).abs() / target_length
 
 
-def svg_emd_loss(p_pred, p_target,
-                 first_point_weight=False, return_matched_indices=False):
+def svg_emd_loss(p_pred, p_target, first_point_weight=False, return_matched_indices=False):
     n, m = len(p_pred), len(p_target)
 
     if n == 0:
-        return 0.
+        return 0.0
 
     # Make target point lists clockwise
     p_target = make_clockwise(p_target)
 
     # Compute length distribution
-    distr_pred =  torch.linspace(0., 1., n).to(p_pred.device)
+    distr_pred = torch.linspace(0.0, 1.0, n).to(p_pred.device)
     distr_target = get_length_distribution(p_target, normalize=True)
     d = torch.cdist(distr_pred.unsqueeze(-1), distr_target.unsqueeze(-1))
     matching = d.argmin(dim=-1)
@@ -42,7 +41,7 @@ def svg_emd_loss(p_pred, p_target,
 
     if first_point_weight:
         weights = torch.ones_like(losses)
-        weights[0] = 10.
+        weights[0] = 10.0
         losses = losses * weights
 
     if return_matched_indices:

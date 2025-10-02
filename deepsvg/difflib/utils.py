@@ -10,10 +10,10 @@ def set_viewbox(viewbox):
 
 
 def plot_points(p, viewbox=None, show_color=False, show_colorbar=False, image_file=None, return_img=False):
-    cm = plt.cm.get_cmap('RdYlBu')
-    plt.gca().set_aspect('equal')
+    cm = plt.cm.get_cmap("RdYlBu")
+    plt.gca().set_aspect("equal")
     plt.gca().invert_yaxis()
-    plt.gca().axis('off')
+    plt.gca().axis("off")
 
     if viewbox is not None:
         set_viewbox(viewbox)
@@ -25,7 +25,7 @@ def plot_points(p, viewbox=None, show_color=False, show_colorbar=False, image_fi
         plt.colorbar()
 
     if image_file is not None:
-        plt.savefig(image_file, bbox_inches='tight')
+        plt.savefig(image_file, bbox_inches="tight")
 
     if return_img:
         buf = io.BytesIO()
@@ -35,7 +35,7 @@ def plot_points(p, viewbox=None, show_color=False, show_colorbar=False, image_fi
 
 
 def plot_matching(p1, p2, matching, viewbox=None):
-    plt.gca().set_aspect('equal')
+    plt.gca().set_aspect("equal")
     plt.gca().invert_yaxis()
     plt.axis("off")
 
@@ -72,8 +72,7 @@ def get_length(p):
 def get_length_distribution(p, normalize=True):
     start, end = p[:-1], p[1:]
     length_distr = torch.norm(end - start, dim=-1).cumsum(dim=0)
-    length_distr = torch.cat([length_distr.new_zeros(1),
-                              length_distr])
+    length_distr = torch.cat([length_distr.new_zeros(1), length_distr])
 
     if normalize:
         length_distr = length_distr / length_distr[-1]

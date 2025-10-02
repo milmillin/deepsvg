@@ -56,12 +56,12 @@ class SVG:
 
     @property
     def start_pos(self):
-        return Point(0.)
+        return Point(0.0)
 
     @property
     def end_pos(self):
         if not self.svg_path_groups:
-            return Point(0.)
+            return Point(0.0)
 
         return self.svg_path_groups[-1].end_pos
 
@@ -78,7 +78,7 @@ class SVG:
         if "SplineSet" not in spline_str:
             raise ValueError("Not a SplineSet")
 
-        spline = spline_str[spline_str.index('SplineSet') + 10:spline_str.index('EndSplineSet')]
+        spline = spline_str[spline_str.index("SplineSet") + 10 : spline_str.index("EndSplineSet")]
         svg_str = SVG._spline_to_svg_str(spline, height)
 
         if not svg_str:
@@ -94,14 +94,14 @@ class SVG:
         for line in spline_str.splitlines():
             if not line:
                 continue
-            tokens = line.split(' ')
+            tokens = line.split(" ")
             cmd = tokens[-2]
-            if cmd not in 'cml':
+            if cmd not in "cml":
                 raise ValueError(f"Command not recognized: {cmd}")
             args = tokens[:-2]
             args = [float(x) for x in args if x]
 
-            if replace_with_prev and cmd in 'c':
+            if replace_with_prev and cmd in "c":
                 args[:2] = prev_xy
             prev_xy = args[-2:]
 
@@ -119,7 +119,7 @@ class SVG:
     def from_str(svg_str: str):
         svg_path_groups = []
         svg_dom = expatbuilder.parseString(svg_str, False)
-        svg_root = svg_dom.getElementsByTagName('svg')[0]
+        svg_root = svg_dom.getElementsByTagName("svg")[0]
 
         viewbox_list = list(map(float, svg_root.getAttribute("viewBox").split(" ")))
         view_box = Bbox(*viewbox_list)
@@ -127,9 +127,11 @@ class SVG:
         primitives = {
             "path": SVGPath,
             "rect": SVGRectangle,
-            "circle": SVGCircle, "ellipse": SVGEllipse,
+            "circle": SVGCircle,
+            "ellipse": SVGEllipse,
             "line": SVGLine,
-            "polyline": SVGPolyline, "polygon": SVGPolygon
+            "polyline": SVGPolyline,
+            "polygon": SVGPolygon,
         }
 
         for tag, Primitive in primitives.items():
@@ -172,9 +174,19 @@ class SVG:
     def save_png(self, file_path):
         cairosvg.svg2png(bytestring=self.to_str(), write_to=file_path)
 
-    def draw(self, fill=False, file_path=None, do_display=True, return_png=False,
-             with_points=False, with_handles=False, with_bboxes=False, with_markers=False, color_firstlast=False,
-             with_moves=True):
+    def draw(
+        self,
+        fill=False,
+        file_path=None,
+        do_display=True,
+        return_png=False,
+        with_points=False,
+        with_handles=False,
+        with_bboxes=False,
+        with_markers=False,
+        color_firstlast=False,
+        with_moves=True,
+    ):
         if file_path is not None:
             _, file_extension = os.path.splitext(file_path)
             if file_extension == ".svg":
@@ -184,8 +196,15 @@ class SVG:
             else:
                 raise ValueError(f"Unsupported file_path extension {file_extension}")
 
-        svg_str = self.to_str(fill=fill, with_points=with_points, with_handles=with_handles, with_bboxes=with_bboxes,
-                              with_markers=with_markers, color_firstlast=color_firstlast, with_moves=with_moves)
+        svg_str = self.to_str(
+            fill=fill,
+            with_points=with_points,
+            with_handles=with_handles,
+            with_bboxes=with_bboxes,
+            with_markers=with_markers,
+            color_firstlast=color_firstlast,
+            with_moves=with_moves,
+        )
 
         if do_display:
             ipd.display(ipd.SVG(svg_str))
@@ -207,33 +226,47 @@ class SVG:
         self.copy().normalize().split_paths().set_color("random").draw(*args, **kwargs)
 
     def __repr__(self):
-        return "SVG[{}](\n{}\n)".format(self.viewbox,
-                                        ",\n".join([f"\t{svg_path_group}" for svg_path_group in self.svg_path_groups]))
+        return "SVG[{}](\n{}\n)".format(
+            self.viewbox, ",\n".join([f"\t{svg_path_group}" for svg_path_group in self.svg_path_groups])
+        )
 
-    def _get_viz_elements(self, with_points=False, with_handles=False, with_bboxes=False, color_firstlast=False,
-                          with_moves=True):
+    def _get_viz_elements(
+        self, with_points=False, with_handles=False, with_bboxes=False, color_firstlast=False, with_moves=True
+    ):
         viz_elements = []
         for svg_path_group in self.svg_path_groups:
             viz_elements.extend(
-                svg_path_group._get_viz_elements(with_points, with_handles, with_bboxes, color_firstlast, with_moves))
+                svg_path_group._get_viz_elements(with_points, with_handles, with_bboxes, color_firstlast, with_moves)
+            )
         return viz_elements
 
     def _markers(self):
-        return ('<defs>'
-                '<marker id="arrow" viewBox="0 0 10 10" markerWidth="4" markerHeight="4" refX="0" refY="3" orient="auto" markerUnits="strokeWidth">'
-                '<path d="M0,0 L0,6 L9,3 z" fill="#f00" />'
-                '</marker>'
-                '</defs>')
+        return (
+            "<defs>"
+            '<marker id="arrow" viewBox="0 0 10 10" markerWidth="4" markerHeight="4" refX="0" refY="3" orient="auto" markerUnits="strokeWidth">'
+            '<path d="M0,0 L0,6 L9,3 z" fill="#f00" />'
+            "</marker>"
+            "</defs>"
+        )
 
-    def to_str(self, fill=False, with_points=False, with_handles=False, with_bboxes=False, with_markers=False,
-               color_firstlast=False, with_moves=True) -> str:
+    def to_str(
+        self,
+        fill=False,
+        with_points=False,
+        with_handles=False,
+        with_bboxes=False,
+        with_markers=False,
+        color_firstlast=False,
+        with_moves=True,
+    ) -> str:
         viz_elements = self._get_viz_elements(with_points, with_handles, with_bboxes, color_firstlast, with_moves)
         newline = "\n"
         return (
             f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{self.viewbox.to_str()}" height="200px" width="200px">'
             f'{self._markers() if with_markers else ""}'
-            f'{newline.join(svg_path_group.to_str(fill=fill, with_markers=with_markers) for svg_path_group in [*self.svg_path_groups, *viz_elements])}'
-            '</svg>')
+            f"{newline.join(svg_path_group.to_str(fill=fill, with_markers=with_markers) for svg_path_group in [*self.svg_path_groups, *viz_elements])}"
+            "</svg>"
+        )
 
     def _apply_to_paths(self, method, *args, **kwargs):
         for path_group in self.svg_path_groups:
@@ -393,9 +426,10 @@ class SVG:
         self.normalize(viewbox=Bbox(n))
         return self._apply_to_paths("numericalize", n)
 
-    def simplify(self, tolerance=0.1, epsilon=0.1, angle_threshold=179., force_smooth=False):
-        self._apply_to_paths("simplify", tolerance=tolerance, epsilon=epsilon, angle_threshold=angle_threshold,
-                             force_smooth=force_smooth)
+    def simplify(self, tolerance=0.1, epsilon=0.1, angle_threshold=179.0, force_smooth=False):
+        self._apply_to_paths(
+            "simplify", tolerance=tolerance, epsilon=epsilon, angle_threshold=angle_threshold, force_smooth=force_smooth
+        )
         self.recompute_origins()
         return self
 
@@ -412,14 +446,20 @@ class SVG:
         return self
 
     def simplify_heuristic(self, tolerance=0.1, force_smooth=False):
-        return self.copy().split(max_dist=2, include_lines=False) \
-            .simplify(tolerance=tolerance, epsilon=0.2, angle_threshold=150, force_smooth=force_smooth) \
+        return (
+            self.copy()
+            .split(max_dist=2, include_lines=False)
+            .simplify(tolerance=tolerance, epsilon=0.2, angle_threshold=150, force_smooth=force_smooth)
             .split(max_dist=7.5)
+        )
 
     def simplify_heuristic2(self):
-        return self.copy().split(max_dist=2, include_lines=False) \
-            .simplify(tolerance=0.2, epsilon=0.2, angle_threshold=150) \
+        return (
+            self.copy()
+            .split(max_dist=2, include_lines=False)
+            .simplify(tolerance=0.2, epsilon=0.2, angle_threshold=150)
             .split(max_dist=7.5)
+        )
 
     def split(self, n=None, max_dist=None, include_lines=True):
         return self._apply_to_paths("split", n=n, max_dist=max_dist, include_lines=include_lines)
@@ -428,12 +468,14 @@ class SVG:
     def unit_circle():
         d = 2 * (math.sqrt(2) - 1) / 3
 
-        circle = SVGPath([
-            SVGCommandBezier(Point(.5, 0.), Point(.5 + d, 0.), Point(1., .5 - d), Point(1., .5)),
-            SVGCommandBezier(Point(1., .5), Point(1., .5 + d), Point(.5 + d, 1.), Point(.5, 1.)),
-            SVGCommandBezier(Point(.5, 1.), Point(.5 - d, 1.), Point(0., .5 + d), Point(0., .5)),
-            SVGCommandBezier(Point(0., .5), Point(0., .5 - d), Point(.5 - d, 0.), Point(.5, 0.))
-        ]).to_group()
+        circle = SVGPath(
+            [
+                SVGCommandBezier(Point(0.5, 0.0), Point(0.5 + d, 0.0), Point(1.0, 0.5 - d), Point(1.0, 0.5)),
+                SVGCommandBezier(Point(1.0, 0.5), Point(1.0, 0.5 + d), Point(0.5 + d, 1.0), Point(0.5, 1.0)),
+                SVGCommandBezier(Point(0.5, 1.0), Point(0.5 - d, 1.0), Point(0.0, 0.5 + d), Point(0.0, 0.5)),
+                SVGCommandBezier(Point(0.0, 0.5), Point(0.0, 0.5 - d), Point(0.5 - d, 0.0), Point(0.5, 0.0)),
+            ]
+        ).to_group()
 
         return SVG([circle], viewbox=Bbox(1))
 
@@ -469,9 +511,25 @@ class SVG:
         return self._apply_to_paths("filter_duplicates")
 
     def set_color(self, color):
-        colors = ["deepskyblue", "lime", "deeppink", "gold", "coral", "darkviolet", "royalblue", "darkmagenta", "teal",
-                  "gold",
-                  "green", "maroon", "aqua", "grey", "steelblue", "lime", "orange"]
+        colors = [
+            "deepskyblue",
+            "lime",
+            "deeppink",
+            "gold",
+            "coral",
+            "darkviolet",
+            "royalblue",
+            "darkmagenta",
+            "teal",
+            "gold",
+            "green",
+            "maroon",
+            "aqua",
+            "grey",
+            "steelblue",
+            "lime",
+            "orange",
+        ]
 
         if color == "random_random":
             random.shuffle(colors)
@@ -508,7 +566,7 @@ class SVG:
         if draw:
             pos = nx.spring_layout(G)
             nx.draw_networkx(G, pos, with_labels=True)
-            labels = nx.get_edge_attributes(G, 'weight')
+            labels = nx.get_edge_attributes(G, "weight")
             nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
         return G
 

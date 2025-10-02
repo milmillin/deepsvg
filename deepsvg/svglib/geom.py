@@ -3,6 +3,7 @@ import numpy as np
 from enum import Enum
 import torch
 from typing import List, Union
+
 Num = Union[int, float]
 float_type = (int, float, np.float32)
 
@@ -17,8 +18,7 @@ def get_rotation_matrix(angle: Union[Angle, float]):
     else:
         theta = angle
     c, s = np.cos(theta), np.sin(theta)
-    rot_m = np.array([[c, -s],
-                      [s, c]], dtype=np.float32)
+    rot_m = np.array([[c, -s], [s, c]], dtype=np.float32)
     return rot_m
 
 
@@ -64,7 +64,7 @@ class Point(Geom):
         if isinstance(x, np.ndarray):
             self.pos = x.astype(np.float32)
         elif x is None and y is None:
-            self.pos = np.array([0., 0.], dtype=np.float32)
+            self.pos = np.array([0.0, 0.0], dtype=np.float32)
         elif (isinstance(x, float_type) or x is None) and (isinstance(y, float_type) or y is None):
             if x is None:
                 x = y
@@ -86,10 +86,10 @@ class Point(Geom):
         return self.pos[1]
 
     def xproj(self):
-        return Point(self.x, 0.)
+        return Point(self.x, 0.0)
 
     def yproj(self):
-        return Point(0., self.y)
+        return Point(0.0, self.y)
 
     def __add__(self, other):
         return Point(self.pos + other.pos)
@@ -163,7 +163,7 @@ class Point(Geom):
         return (self - other).norm()
 
     def angle(self, other: Point, signed=False):
-        rad = np.arccos(np.clip(self.normalize().dot(other.normalize()), -1., 1.))
+        rad = np.arccos(np.clip(self.normalize().dot(other.normalize()), -1.0, 1.0))
 
         if signed:
             sign = 1 if det(self, other) >= 0 else -1
@@ -180,7 +180,7 @@ class Point(Geom):
         return self / self.norm()
 
     def numericalize(self, n=256):
-        self.pos = self.pos.round().clip(min=0, max=n-1)
+        self.pos = self.pos.round().clip(min=0, max=n - 1)
 
     def isclose(self, other: Point):
         return np.allclose(self.pos, other.pos)
@@ -279,7 +279,7 @@ class Coord(Geom):
         self.coord += getattr(vec, self.xy.value)
 
     def to_point(self, pos: Point, is_absolute=True):
-        point = pos.copy() if is_absolute else Point(0.)
+        point = pos.copy() if is_absolute else Point(0.0)
         point.pos[int(self.xy == Coord.XY.Y)] = self.coord
         return point
 
@@ -311,13 +311,13 @@ class Bbox(Geom):
             self.wh = Size(wh.x, wh.y)
         elif (isinstance(x, float_type) or x is None) and (isinstance(y, float_type) or y is None):
             if x is None:
-                x = 0.
+                x = 0.0
             if y is None:
                 y = float(x)
 
             if w is None and h is None:
                 w, h = float(x), float(y)
-                x, y = 0., 0.
+                x, y = 0.0, 0.0
             self.xy = Point(x, y)
             self.wh = Size(w, h)
         else:
@@ -396,6 +396,7 @@ class Bbox(Geom):
 
     def to_rectangle(self, *args, **kwargs):
         from .svg_primitive import SVGRectangle
+
         return SVGRectangle(self.xy, self.wh, *args, **kwargs)
 
     def area(self):
@@ -404,7 +405,7 @@ class Bbox(Geom):
     def overlap(self, other):
         inter = self.intersect(other)
         if inter is None:
-            return 0.
+            return 0.0
         return inter.area() / self.area()
 
 

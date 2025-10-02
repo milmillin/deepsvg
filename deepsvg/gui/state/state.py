@@ -42,7 +42,7 @@ class State:
         self.loop_orientation = LoopOrientation.FORWARD
         self.playback_mode = PlaybackMode.EASE
 
-        self.delay = 1 / 10.
+        self.delay = 1 / 10.0
 
         self.modified = False
 

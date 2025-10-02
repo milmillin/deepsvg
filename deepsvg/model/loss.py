@@ -17,7 +17,7 @@ class SVGLoss(nn.Module):
         self.register_buffer("cmd_args_mask", SVGTensor.CMD_ARGS_MASK)
 
     def forward(self, output, labels, weights):
-        loss = 0.
+        loss = 0.0
         res = {}
 
         # VAE
@@ -50,16 +50,16 @@ class SVGLoss(nn.Module):
 
         mask = self.cmd_args_mask[tgt_commands.long()]
 
-        loss_cmd = F.cross_entropy(command_logits[padding_mask.bool()].reshape(-1, self.cfg.n_commands), tgt_commands[padding_mask.bool()].reshape(-1).long())
-        loss_args = F.cross_entropy(args_logits[mask.bool()].reshape(-1, self.args_dim), tgt_args[mask.bool()].reshape(-1).long() + 1)  # shift due to -1 PAD_VAL
+        loss_cmd = F.cross_entropy(
+            command_logits[padding_mask.bool()].reshape(-1, self.cfg.n_commands),
+            tgt_commands[padding_mask.bool()].reshape(-1).long(),
+        )
+        loss_args = F.cross_entropy(
+            args_logits[mask.bool()].reshape(-1, self.args_dim), tgt_args[mask.bool()].reshape(-1).long() + 1
+        )  # shift due to -1 PAD_VAL
 
-        loss += weights["loss_cmd_weight"] * loss_cmd \
-                + weights["loss_args_weight"] * loss_args
+        loss += weights["loss_cmd_weight"] * loss_cmd + weights["loss_args_weight"] * loss_args
 
-        res.update({
-            "loss": loss,
-            "loss_cmd": loss_cmd,
-            "loss_args": loss_args
-        })
+        res.update({"loss": loss, "loss_cmd": loss_cmd, "loss_args": loss_args})
 
         return res

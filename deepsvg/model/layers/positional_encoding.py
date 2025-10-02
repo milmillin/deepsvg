@@ -14,10 +14,10 @@ class PositionalEncodingSinCos(nn.Module):
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         pe = pe.unsqueeze(0).transpose(0, 1)
-        self.register_buffer('pe', pe)
+        self.register_buffer("pe", pe)
 
     def forward(self, x):
-        x = x + self.pe[:x.size(0), :]
+        x = x + self.pe[: x.size(0), :]
         return self.dropout(x)
 
 
@@ -28,7 +28,7 @@ class PositionalEncodingLUT(nn.Module):
         self.dropout = nn.Dropout(p=dropout)
 
         position = torch.arange(0, max_len, dtype=torch.long).unsqueeze(1)
-        self.register_buffer('position', position)
+        self.register_buffer("position", position)
 
         self.pos_embed = nn.Embedding(max_len, d_model)
 
@@ -38,6 +38,6 @@ class PositionalEncodingLUT(nn.Module):
         nn.init.kaiming_normal_(self.pos_embed.weight, mode="fan_in")
 
     def forward(self, x):
-        pos = self.position[:x.size(0)]
+        pos = self.position[: x.size(0)]
         x = x + self.pos_embed(pos)
         return self.dropout(x)

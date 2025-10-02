@@ -23,6 +23,7 @@ class SVGPrimitive:
     """
     Reference: https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Basic_Shapes
     """
+
     def __init__(self, color="black", fill=False, dasharray=None, stroke_width=".3", opacity=1.0):
         self.color = color
         self.dasharray = dasharray
@@ -32,7 +33,11 @@ class SVGPrimitive:
         self.fill = fill
 
     def _get_fill_attr(self):
-        fill_attr = f'fill="{self.color}" fill-opacity="{self.opacity}"' if self.fill else f'fill="none" stroke="{self.color}" stroke-width="{self.stroke_width}" stroke-opacity="{self.opacity}"'
+        fill_attr = (
+            f'fill="{self.color}" fill-opacity="{self.opacity}"'
+            if self.fill
+            else f'fill="none" stroke="{self.color}" stroke-width="{self.stroke_width}" stroke-opacity="{self.opacity}"'
+        )
         if self.dasharray is not None and not self.fill:
             fill_attr += f' stroke-dasharray="{self.dasharray}"'
         return fill_attr
@@ -43,9 +48,12 @@ class SVGPrimitive:
 
     def draw(self, viewbox=Bbox(24), *args, **kwargs):
         from .svg import SVG
+
         return SVG([self], viewbox=viewbox).draw(*args, **kwargs)
 
-    def _get_viz_elements(self, with_points=False, with_handles=False, with_bboxes=False, color_firstlast=True, with_moves=True):
+    def _get_viz_elements(
+        self, with_points=False, with_handles=False, with_bboxes=False, color_firstlast=True, with_moves=True
+    ):
         return []
 
     def to_path(self):
@@ -70,7 +78,7 @@ class SVGEllipse(SVGPrimitive):
         self.radius = radius
 
     def __repr__(self):
-        return f'SVGEllipse(c={self.center} r={self.radius})'
+        return f"SVGEllipse(c={self.center} r={self.radius})"
 
     def to_str(self, *args, **kwargs):
         fill_attr = self._get_fill_attr()
@@ -88,10 +96,10 @@ class SVGEllipse(SVGPrimitive):
         p0, p1 = self.center + self.radius.xproj(), self.center + self.radius.yproj()
         p2, p3 = self.center - self.radius.xproj(), self.center - self.radius.yproj()
         commands = [
-            SVGCommandArc(p0, self.radius, Angle(0.), Flag(0.), Flag(1.), p1),
-            SVGCommandArc(p1, self.radius, Angle(0.), Flag(0.), Flag(1.), p2),
-            SVGCommandArc(p2, self.radius, Angle(0.), Flag(0.), Flag(1.), p3),
-            SVGCommandArc(p3, self.radius, Angle(0.), Flag(0.), Flag(1.), p0),
+            SVGCommandArc(p0, self.radius, Angle(0.0), Flag(0.0), Flag(1.0), p1),
+            SVGCommandArc(p1, self.radius, Angle(0.0), Flag(0.0), Flag(1.0), p2),
+            SVGCommandArc(p2, self.radius, Angle(0.0), Flag(0.0), Flag(1.0), p3),
+            SVGCommandArc(p3, self.radius, Angle(0.0), Flag(0.0), Flag(1.0), p0),
         ]
         return SVGPath(commands, closed=True).to_group(fill=self.fill)
 
@@ -101,7 +109,7 @@ class SVGCircle(SVGEllipse):
         super().__init__(*args, **kwargs)
 
     def __repr__(self):
-        return f'SVGCircle(c={self.center} r={self.radius})'
+        return f"SVGCircle(c={self.center} r={self.radius})"
 
     def to_str(self, *args, **kwargs):
         fill_attr = self._get_fill_attr()
@@ -124,7 +132,7 @@ class SVGRectangle(SVGPrimitive):
         self.wh = wh
 
     def __repr__(self):
-        return f'SVGRectangle(xy={self.xy} wh={self.wh})'
+        return f"SVGRectangle(xy={self.xy} wh={self.wh})"
 
     def to_str(self, *args, **kwargs):
         fill_attr = self._get_fill_attr()
@@ -134,7 +142,7 @@ class SVGRectangle(SVGPrimitive):
     def from_xml(_, x: minidom.Element):
         fill = not x.hasAttribute("fill") or not x.getAttribute("fill") == "none"
 
-        xy = Point(0.)
+        xy = Point(0.0)
         if x.hasAttribute("x"):
             xy.pos[0] = float(x.getAttribute("x"))
         if x.hasAttribute("y"):
@@ -144,12 +152,7 @@ class SVGRectangle(SVGPrimitive):
 
     def to_path(self):
         p0, p1, p2, p3 = self.xy, self.xy + self.wh.xproj(), self.xy + self.wh, self.xy + self.wh.yproj()
-        commands = [
-            SVGCommandLine(p0, p1),
-            SVGCommandLine(p1, p2),
-            SVGCommandLine(p2, p3),
-            SVGCommandLine(p3, p0)
-        ]
+        commands = [SVGCommandLine(p0, p1), SVGCommandLine(p1, p2), SVGCommandLine(p2, p3), SVGCommandLine(p3, p0)]
         return SVGPath(commands, closed=True).to_group(fill=self.fill)
 
 
@@ -161,7 +164,7 @@ class SVGLine(SVGPrimitive):
         self.end_pos = end_pos
 
     def __repr__(self):
-        return f'SVGLine(xy1={self.start_pos} xy2={self.end_pos})'
+        return f"SVGLine(xy1={self.start_pos} xy2={self.end_pos})"
 
     def to_str(self, *args, **kwargs):
         fill_attr = self._get_fill_attr()
@@ -171,8 +174,8 @@ class SVGLine(SVGPrimitive):
     def from_xml(_, x: minidom.Element):
         fill = not x.hasAttribute("fill") or not x.getAttribute("fill") == "none"
 
-        start_pos = Point(float(x.getAttribute("x1") or 0.), float(x.getAttribute("y1") or 0.))
-        end_pos = Point(float(x.getAttribute("x2") or 0.), float(x.getAttribute("y2") or 0.))
+        start_pos = Point(float(x.getAttribute("x1") or 0.0), float(x.getAttribute("y1") or 0.0))
+        end_pos = Point(float(x.getAttribute("x2") or 0.0), float(x.getAttribute("y2") or 0.0))
         return SVGLine(start_pos, end_pos, fill=fill)
 
     def to_path(self):
@@ -186,11 +189,11 @@ class SVGPolyline(SVGPrimitive):
         self.points = points
 
     def __repr__(self):
-        return f'SVGPolyline(points={self.points})'
+        return f"SVGPolyline(points={self.points})"
 
     def to_str(self, *args, **kwargs):
         fill_attr = self._get_fill_attr()
-        return '<polyline {} points="{}"/>'.format(fill_attr, ' '.join([p.to_str() for p in self.points]))
+        return '<polyline {} points="{}"/>'.format(fill_attr, " ".join([p.to_str() for p in self.points]))
 
     @classmethod
     def from_xml(cls, x: minidom.Element):
@@ -198,7 +201,7 @@ class SVGPolyline(SVGPrimitive):
 
         args = extract_args(x.getAttribute("points"))
         assert len(args) % 2 == 0, f"Expected even number of arguments for SVGPolyline: {len(args)} given"
-        points = [Point(x, args[2*i+1]) for i, x in enumerate(args[::2])]
+        points = [Point(x, args[2 * i + 1]) for i, x in enumerate(args[::2])]
         return cls(points, fill=fill)
 
     def to_path(self):
@@ -212,11 +215,11 @@ class SVGPolygon(SVGPolyline):
         super().__init__(*args, **kwargs)
 
     def __repr__(self):
-        return f'SVGPolygon(points={self.points})'
+        return f"SVGPolygon(points={self.points})"
 
     def to_str(self, *args, **kwargs):
         fill_attr = self._get_fill_attr()
-        return '<polygon {} points="{}"/>'.format(fill_attr, ' '.join([p.to_str() for p in self.points]))
+        return '<polygon {} points="{}"/>'.format(fill_attr, " ".join([p.to_str() for p in self.points]))
 
 
 class SVGPathGroup(SVGPrimitive):
@@ -225,7 +228,7 @@ class SVGPathGroup(SVGPrimitive):
         self.svg_paths = svg_paths
 
         if origin is None:
-            origin = Point(0.)
+            origin = Point(0.0)
         self.origin = origin
 
     # Alias
@@ -267,16 +270,27 @@ class SVGPathGroup(SVGPrimitive):
         self.svg_paths.append(path)
 
     def copy(self):
-        return SVGPathGroup([svg_path.copy() for svg_path in self.svg_paths], self.origin.copy(),
-                            self.color, self.fill, self.dasharray, self.stroke_width, self.opacity)
+        return SVGPathGroup(
+            [svg_path.copy() for svg_path in self.svg_paths],
+            self.origin.copy(),
+            self.color,
+            self.fill,
+            self.dasharray,
+            self.stroke_width,
+            self.opacity,
+        )
 
     def __repr__(self):
         return "SVGPathGroup({})".format(", ".join(svg_path.__repr__() for svg_path in self.svg_paths))
 
-    def _get_viz_elements(self, with_points=False, with_handles=False, with_bboxes=False, color_firstlast=True, with_moves=True):
+    def _get_viz_elements(
+        self, with_points=False, with_handles=False, with_bboxes=False, color_firstlast=True, with_moves=True
+    ):
         viz_elements = []
         for svg_path in self.svg_paths:
-            viz_elements.extend(svg_path._get_viz_elements(with_points, with_handles, with_bboxes, color_firstlast, with_moves))
+            viz_elements.extend(
+                svg_path._get_viz_elements(with_points, with_handles, with_bboxes, color_firstlast, with_moves)
+            )
 
         if with_bboxes:
             viz_elements.append(self._get_bbox_viz())
@@ -293,9 +307,10 @@ class SVGPathGroup(SVGPrimitive):
 
     def to_str(self, with_markers=False, *args, **kwargs):
         fill_attr = self._get_fill_attr()
-        marker_attr = 'marker-start="url(#arrow)"' if with_markers else ''
-        return '<path {} {} filling="{}" d="{}"></path>'.format(fill_attr, marker_attr, self.path.filling,
-                                                   " ".join(svg_path.to_str() for svg_path in self.svg_paths))
+        marker_attr = 'marker-start="url(#arrow)"' if with_markers else ""
+        return '<path {} {} filling="{}" d="{}"></path>'.format(
+            fill_attr, marker_attr, self.path.filling, " ".join(svg_path.to_str() for svg_path in self.svg_paths)
+        )
 
     def to_tensor(self, PAD_VAL=-1):
         return torch.cat([p.to_tensor(PAD_VAL=PAD_VAL) for p in self.svg_paths], dim=0)
@@ -360,16 +375,20 @@ class SVGPathGroup(SVGPrimitive):
         self.recompute_origins()
         return self
 
-    def simplify(self, tolerance=0.1, epsilon=0.1, angle_threshold=179., force_smooth=False):
-        self._apply_to_paths("simplify", tolerance=tolerance, epsilon=epsilon, angle_threshold=angle_threshold,
-                             force_smooth=force_smooth)
+    def simplify(self, tolerance=0.1, epsilon=0.1, angle_threshold=179.0, force_smooth=False):
+        self._apply_to_paths(
+            "simplify", tolerance=tolerance, epsilon=epsilon, angle_threshold=angle_threshold, force_smooth=force_smooth
+        )
         self.recompute_origins()
         return self
 
     def split_paths(self):
-        return [SVGPathGroup([svg_path], self.origin,
-                             self.color, self.fill, self.dasharray, self.stroke_width, self.opacity)
-                for svg_path in self.svg_paths]
+        return [
+            SVGPathGroup(
+                [svg_path], self.origin, self.color, self.fill, self.dasharray, self.stroke_width, self.opacity
+            )
+            for svg_path in self.svg_paths
+        ]
 
     def split(self, n=None, max_dist=None, include_lines=True):
         return self._apply_to_paths("split", n=n, max_dist=max_dist, include_lines=include_lines)
@@ -436,7 +455,7 @@ class SVGPathGroup(SVGPrimitive):
         if draw:
             pos = nx.spring_layout(G)
             nx.draw_networkx(G, pos, with_labels=True)
-            labels = nx.get_edge_attributes(G, 'weight')
+            labels = nx.get_edge_attributes(G, "weight")
             nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
         return G
 
