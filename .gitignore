@@ -4,3 +4,5 @@ __pycache__/
 logs/
 *.mp4
 gui_data/
+/build/
+*.egg-info/

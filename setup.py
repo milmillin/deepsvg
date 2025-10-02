@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name="deepsvg",
@@ -8,6 +8,6 @@ setup(
     author="Milin Kodnongbua",
     author_email="milink@cs.washington.edu",
     license="MIT",
-    packages=["deepsvg"],
+    packages=find_packages(),
     install_requires=[],  # TODO
 )

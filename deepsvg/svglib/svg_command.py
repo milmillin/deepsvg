@@ -4,7 +4,6 @@ import torch
 import math
 from typing import List, Union, overload, Optional, Literal, cast
 
-from .svg_primitive import SVGCircle, SVGPrimitive
 from .util_fns import get_roots
 from .geom import *
 from deepsvg.difflib.tensor import SVGTensor
@@ -206,11 +205,15 @@ class SVGCommand:
     def get_geoms(self):
         return [self.start_pos, self.end_pos]
 
-    def get_points_viz(self, first: bool = False, last: bool = False) -> List[SVGPrimitive]:
+    def get_points_viz(self, first: bool = False, last: bool = False):
+        from .svg_primitive import SVGCircle, SVGPrimitive
 
         color = "red" if first else "purple" if last else "deepskyblue"  # "#C4C4C4"
         opacity = 0.75 if first or last else 1.0
-        return [SVGCircle(self.end_pos, radius=Radius(0.4), color=color, fill=True, stroke_width=".1", opacity=opacity)]
+        res: list[SVGPrimitive] = [
+            SVGCircle(self.end_pos, radius=Radius(0.4), color=color, fill=True, stroke_width=".1", opacity=opacity)
+        ]
+        return res
 
     def get_handles_viz(self):
         return []
