@@ -1,12 +1,14 @@
-import deepsvg.svglib.svg as svg_lib
-from .geom import Bbox, Point
 import math
 import numpy as np
 import IPython.display as ipd
 from moviepy.editor import ImageClip, concatenate_videoclips, ipython_display
+from typing import List, Optional
+
+import deepsvg.svglib.svg as svg_lib
+from .geom import Bbox, Point
 
 
-def make_grid(svgs, num_cols=3, grid_width=24):
+def make_grid(svgs: List[svg_lib.SVG], num_cols: int = 3, grid_width: int = 24):
     """
     svgs: List[svg_lib.SVG]
     """
@@ -22,7 +24,7 @@ def make_grid(svgs, num_cols=3, grid_width=24):
     return grid
 
 
-def make_grid_grid(svg_grid, grid_width=24):
+def make_grid_grid(svg_grid: List[List[svg_lib.SVG]], grid_width: int = 24):
     """
     svg_grid: List[List[svg_lib.SVG]]
     """
@@ -39,7 +41,7 @@ def make_grid_grid(svg_grid, grid_width=24):
     return grid
 
 
-def make_grid_lines(svg_grid, grid_width=24):
+def make_grid_lines(svg_grid: List[List[svg_lib.SVG]], grid_width: int = 24):
     """
     svg_grid: List[List[svg_lib.SVG]]
     """
@@ -208,7 +210,7 @@ COLORS = [
 ]
 
 
-def to_gif(img_list, file_path=None, frame_duration=0.1, do_display=True):
+def to_gif(img_list, file_path: Optional[str] = None, frame_duration: float = 0.1, do_display: bool = True):
     clips = [ImageClip(np.array(img)).set_duration(frame_duration) for img in img_list]
 
     clip = concatenate_videoclips(clips, method="compose", bg_color=(255, 255, 255))

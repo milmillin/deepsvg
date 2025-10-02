@@ -1,14 +1,14 @@
 from __future__ import annotations
-from .geom import *
-import deepsvg.svglib.geom as geom
 import re
 import torch
-from typing import List, Union
+from typing import List, Union, cast
 from xml.dom import minidom
 import math
 import shapely.geometry
 import numpy as np
 
+import deepsvg.svglib.geom as geom
+from .geom import *
 from .geom import union_bbox
 from .svg_command import SVGCommand, SVGCommandMove, SVGCommandClose, SVGCommandBezier, SVGCommandLine, SVGCommandArc
 
@@ -34,7 +34,11 @@ class Filling:
 
 class SVGPath:
     def __init__(
-        self, path_commands: List[SVGCommand] = None, origin: Point = None, closed=False, filling=Filling.OUTLINE
+        self,
+        path_commands: List[SVGCommand],
+        origin: Optional[Point] = None,
+        closed: bool = False,
+        filling: int = Filling.OUTLINE,
     ):
         self.origin = origin or Point(0.0)
         self.path_commands = path_commands
@@ -71,7 +75,7 @@ class SVGPath:
             return self.start_command
         return self.path_commands[idx - 1]
 
-    def all_commands(self, with_close=True):
+    def all_commands(self, with_close: bool = True) -> List[SVGCommand]:
         close_cmd = (
             [SVGCommandClose(self.path_commands[-1].end_pos.copy(), self.start_pos.copy())]
             if self.closed and self.path_commands and with_close
@@ -122,12 +126,18 @@ class SVGPath:
         return SVGPath.from_commands(path_commands, fill=fill, filling=filling, add_closing=add_closing)
 
     @staticmethod
-    def from_tensor(tensor: torch.Tensor, allow_empty=False):
-        return SVGPath.from_commands([SVGCommand.from_tensor(row) for row in tensor], allow_empty=allow_empty)
+    def from_tensor(tensor: torch.Tensor, allow_empty: bool = False, filling: int = Filling.OUTLINE):
+        return SVGPath.from_commands(
+            [SVGCommand.from_tensor(row) for row in tensor], allow_empty=allow_empty, filling=filling
+        )
 
     @staticmethod
     def from_commands(
-        path_commands: List[SVGCommand], fill=False, filling=Filling.OUTLINE, add_closing=False, allow_empty=False
+        path_commands: List[SVGCommand],
+        fill: bool = False,
+        filling: int = Filling.OUTLINE,
+        add_closing: bool = False,
+        allow_empty: bool = False,
     ):
         from .svg_primitive import SVGPathGroup
 
@@ -174,7 +184,7 @@ class SVGPath:
     def __repr__(self):
         return "SVGPath({})".format(" ".join(command.__repr__() for command in self.all_commands()))
 
-    def to_str(self, fill=False):
+    def to_str(self, fill: bool = False):
         return " ".join(command.to_str() for command in self.all_commands())
 
     def to_tensor(self, PAD_VAL=-1):
@@ -232,7 +242,7 @@ class SVGPath:
         return self
 
     def filter_consecutives(self):
-        path_commands = []
+        path_commands: list[SVGCommand] = []
         for command in self.path_commands:
             if not command.start_pos.isclose(command.end_pos):
                 path_commands.append(command)
@@ -240,7 +250,7 @@ class SVGPath:
         return self
 
     def filter_duplicates(self, min_dist=0.2):
-        path_commands = []
+        path_commands: list[SVGCommand] = []
         current_command = None
         for command in self.path_commands:
             if current_command is None:
@@ -375,7 +385,7 @@ class SVGPath:
         n = len(self.path_commands)
         knots = [self.start_pos, *(path_commmand.end_pos for path_commmand in self.path_commands)]
         r = [knots[0] + 2 * knots[1]]
-        f = [2]
+        f: list[float] = [2]
         p = [Point(0.0)] * (n + 1)
 
         # Solve with the Thomas algorithm
@@ -410,9 +420,11 @@ class SVGPath:
             .split(max_dist=7.5)
         )
 
-    def simplify(self, tolerance=0.1, epsilon=0.1, angle_threshold=179.0, force_smooth=False):
+    def simplify(
+        self, tolerance: float = 0.1, epsilon: float = 0.1, angle_threshold: float = 179.0, force_smooth: bool = False
+    ):
         # https://github.com/paperjs/paper.js/blob/c044b698c6b224c10a7747664b2a4cd00a416a25/src/path/PathFitter.js#L44
-        points = [self.start_pos, *(path_command.end_pos for path_command in self.path_commands)]
+        points: list[Point] = [self.start_pos, *(path_command.end_pos for path_command in self.path_commands)]
 
         def subdivide_indices():
             segments_list = []
@@ -427,14 +439,16 @@ class SVGPath:
                     prev_command = None
 
                     continue
+                elif isinstance(command, SVGCommandBezier):
+                    if prev_command is not None and prev_command.angle(command) < angle_threshold:
+                        if current_segment:
+                            segments_list.append(current_segment)
+                            current_segment = []
 
-                if prev_command is not None and prev_command.angle(command) < angle_threshold:
-                    if current_segment:
-                        segments_list.append(current_segment)
-                        current_segment = []
-
-                current_segment.append(i)
-                prev_command = command
+                    current_segment.append(i)
+                    prev_command = command
+                else:
+                    raise ValueError(f"Unsupported command: {command}")
 
             if current_segment:
                 segments_list.append(current_segment)
@@ -498,7 +512,7 @@ class SVGPath:
 
             return True
 
-        def generateBezier(first, last, uPrime, tan1, tan2):
+        def generateBezier(first: int, last: int, uPrime, tan1, tan2):
             epsilon = 1e-12
             p1, p2 = points[first], points[last]
             C = np.zeros((2, 2))
@@ -555,7 +569,7 @@ class SVGPath:
 
             return SVGCommandBezier(p1, p1 + handle1, p2 + handle2, p2)
 
-        def computeLinearMaxError(first, last):
+        def computeLinearMaxError(first: int, last: int):
             maxDist = 0.0
             index = (last - first + 1) // 2
 
@@ -577,10 +591,11 @@ class SVGPath:
                 p1, p2 = points[first], points[last]
                 path_commands.append(SVGCommandLine(p1, p2))
 
-        def fitCubic(error, first, last, tan1=None, tan2=None):
+        def fitCubic(error: float, first: int, last: int, tan1: Optional[Point] = None, tan2: Optional[Point] = None):
             # For convenience, compute extremity tangents if not provided
-            if tan1 is None and tan2 is None:
+            if tan1 is None:
                 tan1 = (points[first + 1] - points[first]).normalize()
+            if tan2 is None:
                 tan2 = (points[last - 1] - points[last]).normalize()
 
             if last - first == 1:
@@ -593,6 +608,7 @@ class SVGPath:
             maxError = max(error, error**2)
             parametersInOrder = True
 
+            split_index = -1
             for i in range(5):
                 curve = generateBezier(first, last, uPrime, tan1, tan2)
 
@@ -607,6 +623,8 @@ class SVGPath:
 
                 parametersInOrder = reparametrize(first, last, uPrime, curve)
                 maxError = max_error
+
+            assert split_index != -1, f"split_index should not be -1"
 
             tanCenter = (points[split_index - 1] - points[split_index + 1]).normalize()
             fitCubic(error, first, split_index, tan1, tanCenter)
@@ -634,8 +652,8 @@ class SVGPath:
 
         return self
 
-    def split(self, n=None, max_dist=None, include_lines=True):
-        path_commands = []
+    def split(self, n: Optional[int] = None, max_dist: Optional[float] = None, include_lines=True):
+        path_commands: List[SVGCommand] = []
 
         for command in self.path_commands:
             if isinstance(command, SVGCommandLine) and not include_lines:
@@ -644,6 +662,7 @@ class SVGPath:
                 l = command.length()
                 if max_dist is not None:
                     n = max(math.ceil(l / max_dist), 1)
+                assert n is not None, f"n should not be None"
 
                 path_commands.extend(command.split(n=n))
 
@@ -654,15 +673,16 @@ class SVGPath:
     def bbox(self):
         return union_bbox([cmd.bbox() for cmd in self.path_commands])
 
-    def sample_points(self, max_dist=0.4):
-        points = []
+    def sample_points(self, max_dist: float = 0.4):
+        points: list[np.ndarray] = []
 
         for command in self.path_commands:
             l = command.length()
             n = max(math.ceil(l / max_dist), 1)
-            points.extend(command.sample_points(n=n, return_array=True)[None])
-        points = np.concatenate(points, axis=0)
-        return points
+            res = command.sample_points(n=n, return_array=True)
+            res = cast(np.ndarray, res)
+            points.extend(res[None])
+        return np.concatenate(points, axis=0)
 
     def to_shapely(self):
         polygon = shapely.geometry.Polygon(self.sample_points())

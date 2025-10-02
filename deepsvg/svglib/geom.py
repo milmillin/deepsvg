@@ -2,10 +2,11 @@ from __future__ import annotations
 import numpy as np
 from enum import Enum
 import torch
-from typing import List, Union
+from typing import List, Union, Type, Optional
 
-Num = Union[int, float]
-float_type = (int, float, np.float32)
+type Num = Union[int, float]
+type FloatType = Union[int, float, np.floating]
+float_type = (int, float, np.floating)
 
 
 def det(a: Point, b: Point):
@@ -22,10 +23,11 @@ def get_rotation_matrix(angle: Union[Angle, float]):
     return rot_m
 
 
-def union_bbox(bbox_list: List[Bbox]):
+def union_bbox(bbox_list: List[Union[Bbox, None]]):
     res = None
     for bbox in bbox_list:
-        res = bbox.union(res)
+        if bbox is not None:
+            res = bbox.union(res)
     return res
 
 
@@ -50,7 +52,7 @@ class Geom:
         pass
 
     def rotate(self, angle: Union[Angle, float]):
-        pass
+        raise NotImplementedError
 
     def numericalize(self, n=256):
         raise NotImplementedError
@@ -91,20 +93,20 @@ class Point(Geom):
     def yproj(self):
         return Point(0.0, self.y)
 
-    def __add__(self, other):
+    def __add__(self, other: Point):
         return Point(self.pos + other.pos)
 
-    def __sub__(self, other):
+    def __sub__(self, other: Point):
         return self + other.__neg__()
 
-    def __mul__(self, lmbda):
+    def __mul__(self, lmbda: Union[Point, FloatType]):
         if isinstance(lmbda, Point):
             return Point(self.pos * lmbda.pos)
 
         assert isinstance(lmbda, float_type)
         return Point(lmbda * self.pos)
 
-    def __rmul__(self, lmbda):
+    def __rmul__(self, lmbda: Union[Point, FloatType]):
         return self * lmbda
 
     def __truediv__(self, lmbda):
@@ -136,7 +138,7 @@ class Point(Geom):
     def translate(self, vec: Point):
         self.pos += vec.pos
 
-    def matmul(self, m):
+    def matmul(self, m: np.ndarray):
         return Point(m @ self.pos)
 
     def rotate(self, angle: Union[Angle, float]):
@@ -153,16 +155,16 @@ class Point(Geom):
     def dot(self, other: Point):
         return self.pos.dot(other.pos)
 
-    def norm(self):
+    def norm(self) -> float:
         return float(np.linalg.norm(self.pos))
 
     def cross(self, other: Point):
         return np.cross(self.pos, other.pos)
 
-    def dist(self, other: Point):
+    def dist(self, other: Point) -> float:
         return (self - other).norm()
 
-    def angle(self, other: Point, signed=False):
+    def angle(self, other: Point, signed: bool = False):
         rad = np.arccos(np.clip(self.normalize().dot(other.normalize()), -1.0, 1.0))
 
         if signed:
@@ -369,12 +371,12 @@ class Bbox(Geom):
         self.xy.scale(factor)
         self.wh.scale(factor)
 
-    def union(self, other: Bbox):
+    def union(self, other: Optional[Bbox]):
         if other is None:
             return self
         return Bbox(self.xy.pointwise_min(other.xy), self.xy2.pointwise_max(other.xy2))
 
-    def intersect(self, other: Bbox):
+    def intersect(self, other: Optional[Bbox]):
         if other is None:
             return self
 
@@ -399,10 +401,10 @@ class Bbox(Geom):
 
         return SVGRectangle(self.xy, self.wh, *args, **kwargs)
 
-    def area(self):
+    def area(self) -> float:
         return self.wh.pos.prod()
 
-    def overlap(self, other):
+    def overlap(self, other: Optional[Bbox]) -> float:
         inter = self.intersect(other)
         if inter is None:
             return 0.0

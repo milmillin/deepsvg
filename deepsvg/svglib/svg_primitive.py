@@ -1,15 +1,16 @@
 from __future__ import annotations
-from .geom import *
 import torch
 import re
 from typing import List, Union
 from xml.dom import minidom
-from .svg_path import SVGPath
-from .svg_command import SVGCommandLine, SVGCommandArc, SVGCommandBezier, SVGCommandClose
 import shapely
 import shapely.ops
 import shapely.geometry
 import networkx as nx
+
+from .geom import *
+from .svg_path import SVGPath
+from .svg_command import SVGCommandLine, SVGCommandArc, SVGCommandBezier, SVGCommandClose, SVGCommand
 
 
 FLOAT_RE = re.compile(r"[-+]?[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?")
@@ -46,7 +47,7 @@ class SVGPrimitive:
     def from_xml(cls, x: minidom.Element):
         raise NotImplementedError
 
-    def draw(self, viewbox=Bbox(24), *args, **kwargs):
+    def draw(self, viewbox: Bbox = Bbox(24), *args, **kwargs):
         from .svg import SVG
 
         return SVG([self], viewbox=viewbox).draw(*args, **kwargs)
@@ -85,7 +86,7 @@ class SVGEllipse(SVGPrimitive):
         return f'<ellipse {fill_attr} cx="{self.center.x}" cy="{self.center.y}" rx="{self.radius.x}" ry="{self.radius.y}"/>'
 
     @classmethod
-    def from_xml(_, x: minidom.Element):
+    def from_xml(cls, x: minidom.Element):
         fill = not x.hasAttribute("fill") or not x.getAttribute("fill") == "none"
 
         center = Point(float(x.getAttribute("cx")), float(x.getAttribute("cy")))
@@ -95,7 +96,7 @@ class SVGEllipse(SVGPrimitive):
     def to_path(self):
         p0, p1 = self.center + self.radius.xproj(), self.center + self.radius.yproj()
         p2, p3 = self.center - self.radius.xproj(), self.center - self.radius.yproj()
-        commands = [
+        commands: List[SVGCommand] = [
             SVGCommandArc(p0, self.radius, Angle(0.0), Flag(0.0), Flag(1.0), p1),
             SVGCommandArc(p1, self.radius, Angle(0.0), Flag(0.0), Flag(1.0), p2),
             SVGCommandArc(p2, self.radius, Angle(0.0), Flag(0.0), Flag(1.0), p3),
@@ -116,7 +117,7 @@ class SVGCircle(SVGEllipse):
         return f'<circle {fill_attr} cx="{self.center.x}" cy="{self.center.y}" r="{self.radius.x}"/>'
 
     @classmethod
-    def from_xml(_, x: minidom.Element):
+    def from_xml(cls, x: minidom.Element):
         fill = not x.hasAttribute("fill") or not x.getAttribute("fill") == "none"
 
         center = Point(float(x.getAttribute("cx")), float(x.getAttribute("cy")))
@@ -139,7 +140,7 @@ class SVGRectangle(SVGPrimitive):
         return f'<rect {fill_attr} x="{self.xy.x}" y="{self.xy.y}" width="{self.wh.x}" height="{self.wh.y}"/>'
 
     @classmethod
-    def from_xml(_, x: minidom.Element):
+    def from_xml(cls, x: minidom.Element):
         fill = not x.hasAttribute("fill") or not x.getAttribute("fill") == "none"
 
         xy = Point(0.0)
@@ -152,7 +153,12 @@ class SVGRectangle(SVGPrimitive):
 
     def to_path(self):
         p0, p1, p2, p3 = self.xy, self.xy + self.wh.xproj(), self.xy + self.wh, self.xy + self.wh.yproj()
-        commands = [SVGCommandLine(p0, p1), SVGCommandLine(p1, p2), SVGCommandLine(p2, p3), SVGCommandLine(p3, p0)]
+        commands: list[SVGCommand] = [
+            SVGCommandLine(p0, p1),
+            SVGCommandLine(p1, p2),
+            SVGCommandLine(p2, p3),
+            SVGCommandLine(p3, p0),
+        ]
         return SVGPath(commands, closed=True).to_group(fill=self.fill)
 
 
@@ -171,7 +177,7 @@ class SVGLine(SVGPrimitive):
         return f'<line {fill_attr} x1="{self.start_pos.x}" y1="{self.start_pos.y}" x2="{self.end_pos.x}" y2="{self.end_pos.y}"/>'
 
     @classmethod
-    def from_xml(_, x: minidom.Element):
+    def from_xml(cls, x: minidom.Element):
         fill = not x.hasAttribute("fill") or not x.getAttribute("fill") == "none"
 
         start_pos = Point(float(x.getAttribute("x1") or 0.0), float(x.getAttribute("y1") or 0.0))
@@ -205,7 +211,7 @@ class SVGPolyline(SVGPrimitive):
         return cls(points, fill=fill)
 
     def to_path(self):
-        commands = [SVGCommandLine(p1, p2) for p1, p2 in zip(self.points[:-1], self.points[1:])]
+        commands: list[SVGCommand] = [SVGCommandLine(p1, p2) for p1, p2 in zip(self.points[:-1], self.points[1:])]
         is_closed = self.__class__.__name__ == "SVGPolygon"
         return SVGPath(commands, closed=is_closed).to_group(fill=self.fill)
 
@@ -223,7 +229,7 @@ class SVGPolygon(SVGPolyline):
 
 
 class SVGPathGroup(SVGPrimitive):
-    def __init__(self, svg_paths: List[SVGPath] = None, origin=None, *args, **kwargs):
+    def __init__(self, svg_paths: List[SVGPath], origin: Optional[Point] = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.svg_paths = svg_paths
 
@@ -299,8 +305,9 @@ class SVGPathGroup(SVGPrimitive):
 
     def _get_bbox_viz(self):
         color = "red" if self.color == "black" else self.color
-        bbox = self.bbox().to_rectangle(color=color)
-        return bbox
+        bbox = self.bbox()
+        assert bbox is not None
+        return bbox.to_rectangle(color=color)
 
     def to_path(self):
         return self
@@ -412,7 +419,7 @@ class SVGPathGroup(SVGPrimitive):
         if self.fill:
             G = self.overlap_graph()
 
-            root_nodes = [i for i, d in G.in_degree() if d == 0]
+            root_nodes = [i for i, d in G.in_degree() if d == 0]  # type: ignore[arg-type]
 
             for root in root_nodes:
                 if not self.svg_paths[root].closed:
@@ -460,7 +467,10 @@ class SVGPathGroup(SVGPrimitive):
         return G
 
     def bbox_overlap(self, other: SVGPathGroup):
-        return self.bbox().overlap(other.bbox())
+        bbox = self.bbox()
+        if bbox is None:
+            return 0.0
+        return bbox.overlap(other.bbox())
 
     def to_points(self):
         return np.concatenate([path.to_points() for path in self.svg_paths])

@@ -22,7 +22,7 @@ from .geom import union_bbox
 
 
 class SVG:
-    def __init__(self, svg_path_groups: List[SVGPathGroup], viewbox: Bbox = None):
+    def __init__(self, svg_path_groups: List[SVGPathGroup], viewbox: Optional[Bbox] = None):
         if viewbox is None:
             viewbox = Bbox(24)
 
@@ -152,7 +152,7 @@ class SVG:
         return [p.path.filling for p in self.svg_path_groups]
 
     @staticmethod
-    def from_tensor(tensor: torch.Tensor, viewbox: Bbox = None, allow_empty=False):
+    def from_tensor(tensor: torch.Tensor, viewbox: Optional[Bbox] = None, allow_empty=False):
         if viewbox is None:
             viewbox = Bbox(24)
 
@@ -160,7 +160,7 @@ class SVG:
         return svg
 
     @staticmethod
-    def from_tensors(tensors: List[torch.Tensor], viewbox: Bbox = None, allow_empty=False):
+    def from_tensors(tensors: List[torch.Tensor], viewbox: Optional[Bbox] = None, allow_empty=False):
         if viewbox is None:
             viewbox = Bbox(24)
 
@@ -212,12 +212,14 @@ class SVG:
         if return_png:
             if file_path is None:
                 img_data = cairosvg.svg2png(bytestring=svg_str)
+                assert isinstance(img_data, bytes)
                 return Image.open(io.BytesIO(img_data))
             else:
                 _, file_extension = os.path.splitext(file_path)
 
                 if file_extension == ".svg":
                     img_data = cairosvg.svg2png(url=file_path)
+                    assert isinstance(img_data, bytes)
                     return Image.open(io.BytesIO(img_data))
                 else:
                     return Image.open(file_path)
@@ -301,7 +303,7 @@ class SVG:
     def translate(self, vec: Point):
         return self._apply_to_paths("translate", vec)
 
-    def rotate(self, angle: Angle, center: Point = None):
+    def rotate(self, angle: Angle, center: Optional[Point] = None):
         if center is None:
             center = self.viewbox.center
 
@@ -311,7 +313,7 @@ class SVG:
 
         return self
 
-    def zoom(self, factor, center: Point = None):
+    def zoom(self, factor, center: Optional[Point] = None):
         if center is None:
             center = self.viewbox.center
 
@@ -321,7 +323,7 @@ class SVG:
 
         return self
 
-    def normalize(self, viewbox: Bbox = None):
+    def normalize(self, viewbox: Optional[Bbox] = None):
         if viewbox is None:
             viewbox = Bbox(24)
 
@@ -574,7 +576,7 @@ class SVG:
         G = self.overlap_graph()
 
         path_groups = []
-        root_nodes = [i for i, d in G.in_degree() if d == 0]
+        root_nodes = [i for i, d in G.in_degree() if d == 0]  # type: ignore[arg-type]
 
         for root in root_nodes:
             if self[root].path.filling == Filling.FILL:

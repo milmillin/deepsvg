@@ -1,24 +1,27 @@
 import numpy as np
+import torch
 from .utils import *
 
 
-def chamfer_loss(x, y):
+def chamfer_loss(x: torch.Tensor, y: torch.Tensor):
     d = torch.cdist(x, y)
     return d.min(dim=0).values.mean() + d.min(dim=1).values.mean()
 
 
-def continuity_loss(x):
+def continuity_loss(x: torch.Tensor):
     d = (x[1:] - x[:-1]).norm(dim=-1, p=2)
     return d.mean()
 
 
-def svg_length_loss(p_pred, p_target):
+def svg_length_loss(p_pred: torch.Tensor, p_target: torch.Tensor):
     pred_length, target_length = get_length(p_pred), get_length(p_target)
 
     return (target_length - pred_length).abs() / target_length
 
 
-def svg_emd_loss(p_pred, p_target, first_point_weight=False, return_matched_indices=False):
+def svg_emd_loss(
+    p_pred: torch.Tensor, p_target: torch.Tensor, first_point_weight: bool = False, return_matched_indices: bool = False
+):
     n, m = len(p_pred), len(p_target)
 
     if n == 0:
@@ -37,7 +40,7 @@ def svg_emd_loss(p_pred, p_target, first_point_weight=False, return_matched_indi
     # EMD
     i = np.argmin([torch.norm(p_pred - reorder(p_target_sub, i), dim=-1).mean() for i in range(n)])
 
-    losses = torch.norm(p_pred - reorder(p_target_sub, i), dim=-1)
+    losses: torch.Tensor = torch.norm(p_pred - reorder(p_target_sub, i), dim=-1)
 
     if first_point_weight:
         weights = torch.ones_like(losses)

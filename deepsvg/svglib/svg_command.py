@@ -1,13 +1,13 @@
 from __future__ import annotations
-from .geom import *
-from deepsvg.difflib.tensor import SVGTensor
-from .util_fns import get_roots
 from enum import Enum
 import torch
 import math
-from typing import List, Union
+from typing import List, Union, overload, Optional, Literal, cast
 
-Num = Union[int, float]
+from .svg_primitive import SVGCircle, SVGPrimitive
+from .util_fns import get_roots
+from .geom import *
+from deepsvg.difflib.tensor import SVGTensor
 
 
 class SVGCmdEnum(Enum):
@@ -49,7 +49,13 @@ class SVGCommand:
         raise NotImplementedError
 
     @staticmethod
-    def from_str(cmd_str: str, args_str: List[Num], pos=None, initial_pos=None, prev_command: SVGCommand = None):
+    def from_str(
+        cmd_str: str,
+        args_str: List[Num],
+        pos: Optional[Point] = None,
+        initial_pos: Optional[Point] = None,
+        prev_command: Optional[SVGCommand] = None,
+    ):
         if pos is None:
             pos = Point(0.0)
         if initial_pos is None:
@@ -111,6 +117,8 @@ class SVGCommand:
                     control1 = pos
                 control2 = args[0] if cmd is SVGCmdEnum.CUBIC_BEZIER_REFL else control1
                 cmd_parsed = SVGCommandBezier(pos, control1, control2, args[-1])
+            else:
+                raise ValueError(f"Unknown command: {cmd}")
 
             prev_command = cmd_parsed
             pos = cmd_parsed.end_pos
@@ -162,7 +170,7 @@ class SVGCommand:
         control1: Point,
         control2: Point,
         end_pos: Point,
-    ):
+    ) -> SVGCommand:
         if command is SVGCmdEnum.MOVE_TO:
             return SVGCommandMove(start_pos, end_pos)
         elif command is SVGCmdEnum.LINE_TO:
@@ -173,6 +181,8 @@ class SVGCommand:
             return SVGCommandClose(start_pos, end_pos)
         elif command is SVGCmdEnum.ELLIPTIC_ARC:
             return SVGCommandArc(start_pos, radius, x_axis_rotation, large_arc_flag, sweep_flag, end_pos)
+        else:
+            raise ValueError(f"Unknown command: {command}")
 
     def draw(self, *args, **kwargs):
         from .svg_path import SVGPath
@@ -196,8 +206,7 @@ class SVGCommand:
     def get_geoms(self):
         return [self.start_pos, self.end_pos]
 
-    def get_points_viz(self, first=False, last=False):
-        from .svg_primitive import SVGCircle
+    def get_points_viz(self, first: bool = False, last: bool = False) -> List[SVGPrimitive]:
 
         color = "red" if first else "purple" if last else "deepskyblue"  # "#C4C4C4"
         opacity = 0.75 if first or last else 1.0
@@ -206,10 +215,10 @@ class SVGCommand:
     def get_handles_viz(self):
         return []
 
-    def sample_points(self, n=10, return_array=False):
+    def sample_points(self, n: int = 10, return_array: Literal[True, False] = False) -> Union[List[Point], np.ndarray]:
         return []
 
-    def split(self, n=2):
+    def split(self, n: int = 2) -> List[SVGCommand]:
         raise NotImplementedError
 
     def length(self):
@@ -239,7 +248,7 @@ class SVGCommandLinear(SVGCommand):
     def reverse(self):
         return self.__class__(self.end_pos, self.start_pos)
 
-    def split(self, n=2):
+    def split(self, n: int = 2) -> List[SVGCommand]:
         return [self]
 
     def bbox(self):
@@ -247,12 +256,12 @@ class SVGCommandLinear(SVGCommand):
 
 
 class SVGCommandMove(SVGCommandLinear):
-    def __init__(self, start_pos: Point, end_pos: Point = None):
+    def __init__(self, start_pos: Point, end_pos: Optional[Point] = None):
         if end_pos is None:
             start_pos, end_pos = Point(0.0), start_pos
         super().__init__(SVGCmdEnum.MOVE_TO, [end_pos], start_pos, end_pos)
 
-    def get_points_viz(self, first=False, last=False):
+    def get_points_viz(self, first: bool = False, last: bool = False):
         from .svg_primitive import SVGLine
 
         points_viz = super().get_points_viz(first, last)
@@ -267,7 +276,7 @@ class SVGCommandLine(SVGCommandLinear):
     def __init__(self, start_pos: Point, end_pos: Point):
         super().__init__(SVGCmdEnum.LINE_TO, [end_pos], start_pos, end_pos)
 
-    def sample_points(self, n=10, return_array=False):
+    def sample_points(self, n: int = 10, return_array: bool = False):
         z = np.linspace(0.0, 1.0, n)
 
         if return_array:
@@ -277,7 +286,7 @@ class SVGCommandLine(SVGCommandLinear):
         points = [(1 - alpha) * self.start_pos + alpha * self.end_pos for alpha in z]
         return points
 
-    def split(self, n=2):
+    def split(self, n: int = 2) -> List[SVGCommand]:
         points = self.sample_points(n + 1)
         return [SVGCommandLine(p1, p2) for p1, p2 in zip(points[:-1], points[1:])]
 
@@ -387,7 +396,7 @@ class SVGCommandBezier(SVGCommand):
 
         raise NotImplementedError
 
-    def angle(self, other: SVGCommandBezier):
+    def angle(self, other: SVGCommandBezier) -> float:
         t1, t2 = self.derivative(1.0), -other.derivative(0.0)
         if np.isclose(t1.norm(), 0.0) or np.isclose(t2.norm(), 0.0):
             return 0.0
@@ -430,8 +439,8 @@ class SVGCommandBezier(SVGCommand):
 
         return SVGCommandBezier.from_vector(Q1 @ b), SVGCommandBezier.from_vector(Q2 @ b)
 
-    def split(self, n=2):
-        b_list = []
+    def split(self, n: int = 2):
+        b_list: list[SVGCommand] = []
         b = self
 
         for i in range(n - 1):
@@ -443,6 +452,7 @@ class SVGCommandBezier(SVGCommand):
 
     def length(self):
         p = self.sample_points(n=100, return_array=True)
+        p = cast(np.ndarray, p)
         return np.linalg.norm(p[1:] - p[:-1], axis=-1).sum()
 
     def bbox(self):
@@ -535,20 +545,20 @@ class SVGCommandArc(SVGCommand):
 
         return c, theta_1, delta_theta
 
-    def _get_point(self, c: Point, t: float_type):
+    def _get_point(self, c: Point, t: FloatType):
         r = self.radius
         return c + Point(r.x * np.cos(t), r.y * np.sin(t)).rotate(self.x_axis_rotation)
 
-    def _get_derivative(self, t: float_type):
+    def _get_derivative(self, t: FloatType):
         r = self.radius
         return Point(-r.x * np.sin(t), r.y * np.cos(t)).rotate(self.x_axis_rotation)
 
-    def to_beziers(self):
+    def to_beziers(self) -> list[SVGCommandBezier]:
         """References:
         https://www.w3.org/TR/2018/CR-SVG2-20180807/implnote.html
         https://mortoray.com/2017/02/16/rendering-an-svg-elliptical-arc-as-bezier-curves/
         http://www.spaceroots.org/documents/ellipse/elliptical-arc.pdf"""
-        beziers = []
+        beziers: list[SVGCommandBezier] = []
 
         c, theta_1, delta_theta = self._get_center_parametrization()
         nb_curves = max(int(abs(delta_theta.deg) // 45), 1)
@@ -574,8 +584,8 @@ class SVGCommandArc(SVGCommand):
     def get_geoms(self):
         return [self.start_pos, self.radius, self.x_axis_rotation, self.large_arc_flag, self.sweep_flag, self.end_pos]
 
-    def split(self, n=2):
+    def split(self, n: int = 2):
         raise NotImplementedError
 
-    def sample_points(self, n=10, return_array=False):
+    def sample_points(self, n: int = 10, return_array: bool = False):
         raise NotImplementedError

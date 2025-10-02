@@ -228,7 +228,7 @@ class SVGTensor:
 
         return data
 
-    def sample_points(self, n=10):
+    def sample_points(self, n: int = 10) -> torch.Tensor:
         device = self.commands.device
 
         z = torch.linspace(0, 1, n, device=device)
@@ -260,7 +260,10 @@ class SVGTensor:
         return sample_points
 
     @staticmethod
-    def get_length_distribution(p, normalize=True):
+    def get_length_distribution(p: torch.Tensor, normalize: bool = True) -> torch.Tensor:
+        """
+        p: (n, 2)
+        """
         start, end = p[:-1], p[1:]
         length_distr = torch.norm(end - start, dim=-1).cumsum(dim=0)
         length_distr = torch.cat([length_distr.new_zeros(1), length_distr])
@@ -268,7 +271,7 @@ class SVGTensor:
             length_distr = length_distr / length_distr[-1]
         return length_distr
 
-    def sample_uniform_points(self, n=100):
+    def sample_uniform_points(self, n: int = 100) -> torch.Tensor:
         p = self.sample_points(n=n)
 
         distr_unif = torch.linspace(0.0, 1.0, n).to(p.device)
